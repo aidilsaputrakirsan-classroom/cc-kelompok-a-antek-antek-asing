@@ -1,6 +1,6 @@
-# Muhammad Bagas Setiawan
+# Nanda Aulia Putri
 
-**Nama:** Muhammad Bagas Setiawan  
-**NIM:** 10231061  
+**Nama:** Nanda Aulia Putri  
+**NIM:** 10231067  
 **Peran:** FrontEnd
 ```
