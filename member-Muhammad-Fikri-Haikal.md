@@ -1,5 +1,3 @@
-
-```markdown
 # Muhammad Fikri Haikal
 
 **Nama:** Muhammad Fikri Haikal Ariadma  
