@@ -1,8 +1,6 @@
+# Muhammad Athala Romero
 
-```markdown
-# Muhammad Fikri Haikal
-
-**Nama:** Muhammad Fikri Haikal Ariadma  
-**NIM:** 10231063  
-**Peran:** DevOps
+**Nama:** Muhammad Athala Romero  
+**NIM:** 10231059
+**Peran:** Backend Lead
 ```
