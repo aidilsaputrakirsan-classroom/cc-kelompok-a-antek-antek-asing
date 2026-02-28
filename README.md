@@ -1,5 +1,6 @@
 # ☁️  Cloud App - TickTrack
 
+
 ## Deskripsi Proyek
 TickTrack merupakan sistem internal helpdesk berbasis cloud yang dirancang untuk membantu perusahaan dalam mengelola alur pekerjaan internal secara tersturktur dan terdokumentasi. Karyawan dapat membuat serta menyelesaikan tiket pekerjaan seperti maintance, perbaikan perangkat hingga teknis lainnya, serta dapat mempermudah dalam pencatatan dan evaluasi performa karyawan dengan melalui TickTrack. 
 
@@ -49,6 +50,7 @@ Setiap tiket terdapat waktu pembuatan hingga penyelesaian serta seluruh aktivita
 ```
 
 **Penjelasan Arsitektur**
+
 Client/user pengguna dapat mengakses aplikasi TickTrack melalui browser menggunakan protokol HTTPS agar memastikan komunikasi aman. 
 
 React Frontend (Vite) berfungsi usebagai antarmuka pengguna dengan menampilakn dashboard, form input ticket, monitoring performa serta berkomunikasi dengan backend untuk mengambil dan mengirim data
