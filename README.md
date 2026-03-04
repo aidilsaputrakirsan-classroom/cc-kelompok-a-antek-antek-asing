@@ -97,5 +97,5 @@ Untuk menjalankan frontend, masuk ke folder frontend, lalu menginstall seluruh l
 | 15–16  | Final & UAS               | ⬜ |
 
 ### Berikut Hasil tampilan frontend yang menampilkan response dari backend API
-![Foto hasil endpoint](hasil.png)
+![Foto hasil endpoint](docs/images/week1/hasil-week1.png)
 
