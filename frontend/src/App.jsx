@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import Header from "./components/Header"
 import SearchBar from "./components/SearchBar"
+import SortBar from "./components/SortBar"
 import ItemForm from "./components/ItemForm"
 import ItemList from "./components/ItemList"
 import { fetchItems, createItem, updateItem, deleteItem, checkHealth } from "./services/api"
@@ -13,13 +14,30 @@ function App() {
   const [isConnected, setIsConnected] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [sortBy, setSortBy] = useState("")
+
+  // ==================== UTILITY FUNCTIONS ====================
+  const sortItems = (itemsToSort, sortByValue) => {
+    if (!sortByValue) return itemsToSort
+
+    const sorted = [...itemsToSort]
+    if (sortByValue === "name") {
+      sorted.sort((a, b) => a.name.localeCompare(b.name))
+    } else if (sortByValue === "price") {
+      sorted.sort((a, b) => a.price - b.price)
+    } else if (sortByValue === "created_at") {
+      sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    }
+    return sorted
+  }
 
   // ==================== LOAD DATA ====================
-  const loadItems = useCallback(async (search = "") => {
+  const loadItems = useCallback(async (search = "", sort = "") => {
     setLoading(true)
     try {
       const data = await fetchItems(search)
-      setItems(data.items)
+      const sortedItems = sortItems(data.items, sort)
+      setItems(sortedItems)
       setTotalItems(data.total)
     } catch (err) {
       console.error("Error loading items:", err)
@@ -48,7 +66,7 @@ function App() {
       await createItem(itemData)
     }
     // Reload daftar items
-    loadItems(searchQuery)
+    loadItems(searchQuery, sortBy)
   }
 
   const handleEdit = (item) => {
@@ -63,7 +81,7 @@ function App() {
 
     try {
       await deleteItem(id)
-      loadItems(searchQuery)
+      loadItems(searchQuery, sortBy)
     } catch (err) {
       alert("Gagal menghapus: " + err.message)
     }
@@ -71,7 +89,12 @@ function App() {
 
   const handleSearch = (query) => {
     setSearchQuery(query)
-    loadItems(query)
+    loadItems(query, sortBy)
+  }
+
+  const handleSortChange = (newSortBy) => {
+    setSortBy(newSortBy)
+    loadItems(searchQuery, newSortBy)
   }
 
   const handleCancelEdit = () => {
@@ -89,6 +112,7 @@ function App() {
           onCancelEdit={handleCancelEdit}
         />
         <SearchBar onSearch={handleSearch} />
+        <SortBar sortBy={sortBy} onSortChange={handleSortChange} />
         <ItemList
           items={items}
           onEdit={handleEdit}
