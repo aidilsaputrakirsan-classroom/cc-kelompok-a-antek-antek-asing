@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+import re
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -51,7 +52,27 @@ class UserCreate(BaseModel):
     """Schema untuk registrasi user baru."""
     email: str = Field(..., examples=["user@student.itk.ac.id"])
     name: str = Field(..., min_length=2, max_length=100, examples=["Aidil Saputra"])
-    password: str = Field(..., min_length=8, examples=["password123"])
+    password: str = Field(..., min_length=8, examples=["Password123!"])
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_format(cls, value):
+        email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        if not re.match(email_regex, value):
+            raise ValueError("Format email tidak valid. Pastikan penulisan email sudah benar (contoh: user@itk.ac.id).")
+        return value
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_strength(cls, value):
+        # Regex: minimal 8 karakter, 1 huruf besar, 1 huruf kecil, 1 angka, 1 karakter spesial
+        password_regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#_])[A-Za-z\d@$!%*?&#_]{8,}$"
+        if not re.match(password_regex, value):
+            raise ValueError(
+                "Password terlalu lemah. Harus memiliki minimal 8 karakter, "
+                "termasuk 1 huruf kapital, 1 huruf kecil, 1 angka, dan 1 karakter spesial (@$!%*?&#_)."
+            )
+        return value
 
 
 class UserResponse(BaseModel):
