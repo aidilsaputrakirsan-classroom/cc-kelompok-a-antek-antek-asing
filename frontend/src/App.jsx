@@ -4,6 +4,7 @@ import SearchBar from "./components/SearchBar"
 import SortBar from "./components/SortBar"
 import ItemForm from "./components/ItemForm"
 import ItemList from "./components/ItemList"
+import Toast from "./components/Toast"
 import { fetchItems, createItem, updateItem, deleteItem, checkHealth } from "./services/api"
 
 function App() {
@@ -15,6 +16,11 @@ function App() {
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("")
+  const [toast, setToast] = useState({ message: "", type: "success" })
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type })
+  }
 
   // ==================== UTILITY FUNCTIONS ====================
   const sortItems = (itemsToSort, sortByValue) => {
@@ -57,16 +63,20 @@ function App() {
   // ==================== HANDLERS ====================
 
   const handleSubmit = async (itemData, editId) => {
-    if (editId) {
-      // Mode edit
-      await updateItem(editId, itemData)
-      setEditingItem(null)
-    } else {
-      // Mode create
-      await createItem(itemData)
+    try {
+      if (editId) {
+        await updateItem(editId, itemData)
+        setEditingItem(null)
+        showToast("Item berhasil diperbarui!", "success")
+      } else {
+        await createItem(itemData)
+        showToast("Item berhasil ditambahkan!", "success")
+      }
+      loadItems(searchQuery, sortBy)
+    } catch (err) {
+      showToast("Gagal menyimpan: " + err.message, "error")
+      throw err
     }
-    // Reload daftar items
-    loadItems(searchQuery, sortBy)
   }
 
   const handleEdit = (item) => {
@@ -82,8 +92,9 @@ function App() {
     try {
       await deleteItem(id)
       loadItems(searchQuery, sortBy)
+      showToast(`"${item?.name}" berhasil dihapus!`, "success")
     } catch (err) {
-      alert("Gagal menghapus: " + err.message)
+      showToast("Gagal menghapus: " + err.message, "error")
     }
   }
 
@@ -120,6 +131,11 @@ function App() {
           loading={loading}
         />
       </div>
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: "", type: "success" })}
+      />
     </div>
   )
 }
