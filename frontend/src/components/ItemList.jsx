@@ -1,8 +1,15 @@
 import ItemCard from "./ItemCard"
 
-function ItemList({ items, onEdit, onDelete, loading }) {
+function ItemList({ items, onEdit, onDelete, loading, deletingItemId }) {
   if (loading) {
-    return <p style={styles.message}>⏳ Memuat data...</p>
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinnerOuter}>
+          <div style={styles.spinnerInner}></div>
+        </div>
+        <p style={styles.loadingText}>Memuat data...</p>
+      </div>
+    )
   }
 
   if (items.length === 0) {
@@ -25,6 +32,7 @@ function ItemList({ items, onEdit, onDelete, loading }) {
           item={item}
           onEdit={onEdit}
           onDelete={onDelete}
+          isDeleting={deletingItemId === item.id}
         />
       ))}
     </div>
@@ -37,11 +45,32 @@ const styles = {
     gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
     gap: "1rem",
   },
-  message: {
+  loadingContainer: {
     textAlign: "center",
-    color: "#888",
-    padding: "2rem",
+    padding: "3rem 2rem",
+    backgroundColor: "#f8f9fa",
+    borderRadius: "12px",
+    border: "2px dashed #ddd",
+  },
+  spinnerOuter: {
+    display: "inline-block",
+    width: "50px",
+    height: "50px",
+    marginBottom: "1rem",
+    position: "relative",
+  },
+  spinnerInner: {
+    width: "100%",
+    height: "100%",
+    border: "4px solid #ddd",
+    borderTop: "4px solid #548235",
+    borderRadius: "50%",
+    animation: "spin 1s linear infinite",
+  },
+  loadingText: {
     fontSize: "1.1rem",
+    color: "#888",
+    margin: 0,
   },
   empty: {
     textAlign: "center",

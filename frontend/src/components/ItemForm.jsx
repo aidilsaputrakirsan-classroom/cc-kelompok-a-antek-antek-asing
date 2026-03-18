@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 
-function ItemForm({ onSubmit, editingItem, onCancelEdit }) {
+function ItemForm({ onSubmit, editingItem, onCancelEdit, loading }) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -121,11 +121,17 @@ function ItemForm({ onSubmit, editingItem, onCancelEdit }) {
         </div>
 
         <div style={styles.actions}>
-          <button type="submit" style={styles.btnSubmit}>
-            {editingItem ? "💾 Update Item" : "➕ Tambah Item"}
+          <button type="submit" style={styles.btnSubmit} disabled={loading}>
+            {loading
+              ? editingItem
+                ? "⏳ Memperbarui..."
+                : "⏳ Menambahkan..."
+              : editingItem
+              ? "💾 Update Item"
+              : "➕ Tambah Item"}
           </button>
           {editingItem && (
-            <button type="button" onClick={onCancelEdit} style={styles.btnCancel}>
+            <button type="button" onClick={onCancelEdit} style={styles.btnCancel} disabled={loading}>
               ✕ Batal Edit
             </button>
           )}
@@ -189,6 +195,8 @@ const styles = {
     cursor: "pointer",
     fontSize: "0.95rem",
     fontWeight: "bold",
+    opacity: 1,
+    transition: "opacity 0.2s",
   },
   btnCancel: {
     padding: "0.7rem 1.5rem",
@@ -198,6 +206,8 @@ const styles = {
     borderRadius: "8px",
     cursor: "pointer",
     fontSize: "0.95rem",
+    opacity: 1,
+    transition: "opacity 0.2s",
   },
   error: {
     backgroundColor: "#FBE5D6",

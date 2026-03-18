@@ -17,3 +17,17 @@ button:hover {
   transform: translateY(-1px);
   transition: all 0.15s;
 }
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

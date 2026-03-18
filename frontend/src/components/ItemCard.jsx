@@ -1,4 +1,4 @@
-function ItemCard({ item, onEdit, onDelete }) {
+function ItemCard({ item, onEdit, onDelete, isDeleting }) {
   const formatRupiah = (num) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -35,11 +35,11 @@ function ItemCard({ item, onEdit, onDelete }) {
       </div>
 
       <div style={styles.actions}>
-        <button onClick={() => onEdit(item)} style={styles.btnEdit}>
+        <button onClick={() => onEdit(item)} style={styles.btnEdit} disabled={isDeleting}>
           ✏️ Edit
         </button>
-        <button onClick={() => onDelete(item.id)} style={styles.btnDelete}>
-          🗑️ Hapus
+        <button onClick={() => onDelete(item.id)} style={styles.btnDelete} disabled={isDeleting}>
+          {isDeleting ? "\ud83d\udd04 Menghapus..." : "\ud83d\uddd1\ufe0f Hapus"}
         </button>
       </div>
     </div>
@@ -102,6 +102,7 @@ const styles = {
     cursor: "pointer",
     fontSize: "0.85rem",
     fontWeight: "bold",
+    transition: "opacity 0.2s",
   },
   btnDelete: {
     flex: 1,
@@ -113,6 +114,7 @@ const styles = {
     cursor: "pointer",
     fontSize: "0.85rem",
     fontWeight: "bold",
+    transition: "opacity 0.2s",
   },
 }
 

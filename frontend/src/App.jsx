@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
+import Toast from "./components/Toast"
 import Header from "./components/Header"
 import SearchBar from "./components/SearchBar"
 import ItemForm from "./components/ItemForm"
@@ -21,6 +22,14 @@ function App() {
   const [isConnected, setIsConnected] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
+  
+  // ==================== TOAST STATE ====================
+  const [toastMessage, setToastMessage] = useState("")
+  const [toastType, setToastType] = useState("success")
+  
+  // ==================== LOADING STATE (per-operation) ====================
+  const [isSubmittingItem, setIsSubmittingItem] = useState(false)
+  const [deletingItemId, setDeletingItemId] = useState(null)
 
   // ==================== LOAD DATA ====================
   const loadItems = useCallback(async (search = "") => {
@@ -49,6 +58,12 @@ function App() {
     }
   }, [isAuthenticated, loadItems])
 
+  // ==================== TOAST HELPER ====================
+  const showToast = (message, type = "success") => {
+    setToastMessage(message)
+    setToastType(type)
+  }
+
   // ==================== AUTH HANDLERS ====================
 
   const handleLogin = async (email, password) => {
@@ -76,17 +91,25 @@ function App() {
   // ==================== ITEM HANDLERS ====================
 
   const handleSubmit = async (itemData, editId) => {
+    setIsSubmittingItem(true)
     try {
       if (editId) {
         await updateItem(editId, itemData)
+        showToast("✏️ Item berhasil diperbarui", "success")
         setEditingItem(null)
       } else {
         await createItem(itemData)
+        showToast("✅ Item berhasil ditambahkan", "success")
       }
-      loadItems(searchQuery)
+      await loadItems(searchQuery)
     } catch (err) {
-      if (err.message === "UNAUTHORIZED") handleLogout()
-      else throw err
+      if (err.message === "UNAUTHORIZED") {
+        handleLogout()
+      } else {
+        showToast(`❌ ${err.message}`, "error")
+      }
+    } finally {
+      setIsSubmittingItem(false)
     }
   }
 
@@ -98,12 +121,20 @@ function App() {
   const handleDelete = async (id) => {
     const item = items.find((i) => i.id === id)
     if (!window.confirm(`Yakin ingin menghapus "${item?.name}"?`)) return
+    setDeletingItemId(id)
     try {
       await deleteItem(id)
-      loadItems(searchQuery)
+      showToast("🗑️ Item berhasil dihapus", "success")
+      if (editingItem?.id === id) setEditingItem(null)
+      await loadItems(searchQuery)
     } catch (err) {
-      if (err.message === "UNAUTHORIZED") handleLogout()
-      else alert("Gagal menghapus: " + err.message)
+      if (err.message === "UNAUTHORIZED") {
+        handleLogout()
+      } else {
+        showToast(`❌ ${err.message}`, "error")
+      }
+    } finally {
+      setDeletingItemId(null)
     }
   }
 
@@ -122,6 +153,11 @@ function App() {
   // Jika sudah login, tampilkan main app
   return (
     <div style={styles.app}>
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        onClose={() => setToastMessage("")}
+      />
       <div style={styles.container}>
         <Header
           totalItems={totalItems}
@@ -133,6 +169,7 @@ function App() {
           onSubmit={handleSubmit}
           editingItem={editingItem}
           onCancelEdit={() => setEditingItem(null)}
+          loading={isSubmittingItem}
         />
         <SearchBar onSearch={handleSearch} />
         <ItemList
@@ -140,6 +177,7 @@ function App() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           loading={loading}
+          deletingItemId={deletingItemId}
         />
       </div>
     </div>
