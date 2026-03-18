@@ -88,7 +88,7 @@ Untuk menjalankan frontend, masuk ke folder frontend, lalu menginstall seluruh l
 ![Foto hasil endpoint](hasil.png)
 
 
-## Dokumentasi Hasil Pengujian API 
+## Week 2 Dokumentasi Hasil Pengujian API 
 Base URL 
 ```
 http://localhost:8000
@@ -272,14 +272,118 @@ URL
 http://127.0.0.1:8000/items/stats
 
 ```
+
+---
+### Week 4 Integrasi full-stack- cors, env variables & JWT AUTH
+
+#### ⚙️ Setup & Run
+
+| Bagian   | Perintah |
+|----------|---------|
+| Backend Install | `cd backend && pip install -r requirements.txt` |
+| Backend Run | `uvicorn main:app --reload` |
+| Frontend Install | `cd frontend && npm install` |
+| Frontend Run | `npm run dev` |
+
+#### 🌐 Akses Aplikasi
+
+| Service | URL |
+|--------|-----|
+| Backend | http://127.0.0.1:8000 |
+| Swagger Docs | http://127.0.0.1:8000/docs |
+| Frontend | http://localhost:5173 |
+
+---
+
+### 🔐 Authentication
+
+Menggunakan JWT (JSON Web Token)
+
+| Method | Endpoint | Deskripsi |
+|--------|---------|----------|
+| POST | `/auth/register` | Registrasi user |
+| POST | `/auth/login` | Login & mendapatkan token |
+
+Token di header:
+```
+Authorization: Bearer <token>
+```
+
+---
+
+## 📡 API Endpoints
+
+####  🔐 Authentication
+
+| Method | Endpoint |
+|--------|---------|
+| POST | `/auth/register` |
+| POST | `/auth/login` |
+
+#### 📦 Items
+
+| Method | Endpoint |
+|--------|---------|
+| GET | `/items` |
+| POST | `/items` |
+| PUT | `/items/{id}` |
+| DELETE | `/items/{id}` |
+
+#### 📊 Stats
+
+| Method | Endpoint |
+|--------|---------|
+| GET | `/items/stats` |
+
+---
+
+
+### 🧪 Testing
+
+#### 🔐 Authentication
+
+| Test Case | Deskripsi | Hasil |
+|----------|----------|------|
+| Register User | Input email & password valid | ✅ Berhasil |
+| Login User | Login dengan data benar | ✅ Berhasil mendapatkan token autentifikasi |
+| Login Invalid | Data salah |sistem menolak dan menampilkan pesan error|
+
+#### 📦 CRUD Items
+
+| Test Case | Deskripsi | Hasil |
+|----------|----------|------|
+| Add Item | Tambah item baru | ✅ Item berhasil ditambahkan |
+| Get Items | Ambil semua item | ✅ item berhasil menampilkan seluruh item yang tersedia|
+| Update Item | Edit data item | ✅ Perubahan berhasil tersimpan |
+| Delete Item | Hapus item | ✅ Item berhasil terhapus |
+| Empty Input | Input kosong | ✅ Sistem menolak dan menampilkan pesan error |
+| Invalid Email | Format email salah | ✅ Sistem menolak email dengan format yang tidak valid|
+|Strength Password | Password tidak sesuai kriteria | ✅ Sistem menolak password yang tidak memenuhi kriteria keamanan |
+
+---
+
+### ✨ Fitur Tambahan
+
+-  Notifikasi sukses/gagal (toast/alert)
+-  Loading spinner saat API call
+-  Validasi input (email & password)
+-  Empty state saat data kosong
+---
+## 📸 Test Results
+
+Hasil testing pada modul 4 dapat dilihat di folder berikut:
+
+[Folder Screenshot](docs/images/)
+
+---
 ## 📅 Roadmap
 
 | Minggu | Target                    | Status |
 |--------|---------------------------|--------|
 | 1      | Setup & Hello World       | ✅ |
 | 2      | REST API + Database       | ✅ |
-| 3      | React Frontend            | ⬜ |
-| 4      | Full-Stack Integration    | ⬜ |
+| 3      | React Frontend            | ✅ |
+| 4      | Full-Stack Integration    | ✅ |
 | 5–7    | Docker & Compose          | ⬜ |
 | 8      | UTS Demo                  | ⬜ |
 | 9–11   | CI/CD Pipeline            | ⬜ |
