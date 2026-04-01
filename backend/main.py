@@ -48,6 +48,9 @@ def read_root():
 def health_check():
     return {"status": "healthy", "version": "0.4.0"}
 
+@app.get("/auth/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
 
 # ==================== AUTH ENDPOINTS (PUBLIC) ====================
 
