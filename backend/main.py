@@ -86,7 +86,6 @@ app.add_middleware(
 allow_it_and_admins = RoleChecker([UserRole.superadmin, UserRole.admin, UserRole.it_employee])
 # Admin & Superadmin
 allow_admins = RoleChecker([UserRole.superadmin, UserRole.admin])
-
 @app.get("/")
 def read_root():
     return {"message": "IT Support API Online. Visit /docs"}

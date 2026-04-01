@@ -1,60 +1,65 @@
-import { useState, useEffect } from "react"
+import { Navigate, Route, Routes } from "react-router-dom";
+import { useAuth } from "./hooks/useAuth";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import HomePage from "./pages/HomePage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
+import EmployeeTicketDetailPage from "./pages/EmployeeTicketDetailPage";
+import EmployeeTicketEditPage from "./pages/EmployeeTicketEditPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 
-function App() {
-  const [data, setData] = useState(null)
-  const [team, setTeam] = useState(null)
-  const [loading, setLoading] = useState(true)
+function PublicOnlyRoute({ children }) {
+  const { isAuthenticated, isBootstrapping } = useAuth();
 
-  useEffect(() => {
-    // Fetch API root
-    fetch("http://localhost:8000/")
-      .then(res => res.json())
-      .then(json => {
-        setData(json)
-        setLoading(false)
-      })
-      .catch(err => {
-        console.error("Error:", err)
-        setLoading(false)
-      })
+  if (isBootstrapping) {
+    return <p className="p-6 text-slate-600">Loading session...</p>;
+  }
 
-    // Fetch team info
-    fetch("http://localhost:8000/team")
-      .then(res => res.json())
-      .then(json => setTeam(json))
-      .catch(err => console.error("Error:", err))
-  }, [])
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
-  return (
-    <div style={{ padding: "2rem", fontFamily: "Arial" }}>
-      <h1>☁️ Cloud App</h1>
-      <h2>Mata Kuliah Komputasi Awan - SI ITK</h2>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : data ? (
-        <div>
-          <h3>API Response:</h3>
-          <p>Message: {data.message}</p>
-          <p>Status: {data.status}</p>
-          <p>Version: {data.version}</p>
-        </div>
-      ) : (
-        <p style={{ color: "red" }}>Error connecting to backend</p>
-      )}
-
-      {team && (
-        <div>
-          <h3>Tim: {team.team}</h3>
-          <ul>
-            {team.members.map((m, i) => (
-              <li key={i}>{m.name} ({m.nim}) - {m.role}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  )
+  return children;
 }
 
-export default App
+function App() {
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <PublicOnlyRoute>
+            <LoginPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <PublicOnlyRoute>
+            <RegisterPage />
+          </PublicOnlyRoute>
+        }
+      />
+
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<HomePage />} />
+      </Route>
+
+      <Route element={<ProtectedRoute allowedRoles={["employee"]} />}>
+        <Route path="/employee" element={<EmployeeDashboardPage />} />
+        <Route path="/employee/tickets/:ticketId" element={<EmployeeTicketDetailPage />} />
+        <Route path="/employee/tickets/:ticketId/edit" element={<EmployeeTicketEditPage />} />
+      </Route>
+
+      <Route element={<ProtectedRoute allowedRoles={["superadmin", "admin", "it_employee"]} />}>
+        <Route path="/admin" element={<AdminDashboardPage />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}
+
+export default App;
