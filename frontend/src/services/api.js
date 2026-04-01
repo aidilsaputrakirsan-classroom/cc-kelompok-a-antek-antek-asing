@@ -1,101 +1,124 @@
-import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
 
-const API_BASE_URL = "http://127.0.0.1:8000";
-const TOKEN_KEY = "eticket_access_token";
+// ==================== TOKEN MANAGEMENT ====================
 
-export const tokenStorage = {
-  getToken: () => localStorage.getItem(TOKEN_KEY),
-  setToken: (token) => localStorage.setItem(TOKEN_KEY, token),
-  clearToken: () => localStorage.removeItem(TOKEN_KEY),
-};
+let authToken = null
 
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-});
+export function setToken(token) {
+  authToken = token
+}
 
-api.interceptors.request.use((config) => {
-  const token = tokenStorage.getToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+export function getToken() {
+  return authToken
+}
+
+export function clearToken() {
+  authToken = null
+}
+
+function authHeaders() {
+  const headers = {}
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`
   }
-  return config;
-});
+  return headers
+}
 
-export const authApi = {
-  register: async ({ email, name, password }) => {
-    const response = await api.post("/auth/register", { email, name, password });
-    return response.data;
-  },
-  login: async ({ email, password }) => {
-    const payload = new URLSearchParams({
-      username: email,
-      password,
-      grant_type: "password",
-    });
+// Helper: handle response errors
+async function handleResponse(response) {
+  if (response.status === 401) {
+    clearToken()
+    throw new Error("UNAUTHORIZED")
+  }
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(error.detail || `Request gagal (${response.status})`)
+  }
+  // 204 No Content
+  if (response.status === 204) return null
+  return response.json()
+}
 
-    const response = await api.post("/auth/login", payload.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+// ==================== AUTH API ====================
 
-    return response.data;
-  },
-  me: async () => {
-    const response = await api.get("/auth/me");
-    return response.data;
-  },
-};
+export async function register(userData) {
+  const response = await fetch(`${API_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
+  })
+  return handleResponse(response)
+}
 
-export const categoryApi = {
-  list: async () => {
-    const response = await api.get("/categories");
-    return response.data;
-  },
-  create: async (payload) => {
-    const response = await api.post("/categories", payload);
-    return response.data;
-  },
-  update: async (catId, payload) => {
-    const response = await api.put(`/categories/${catId}`, payload);
-    return response.data;
-  },
-};
+export async function login(email, password) {
+  const form = new URLSearchParams()
+  form.append("username", email)
+  form.append("password", password)
+  form.append("grant_type", "password")
 
-export const ticketApi = {
-  list: async (params = {}) => {
-    const response = await api.get("/tickets", { params });
-    return response.data;
-  },
-  detail: async (ticketId) => {
-    const response = await api.get(`/tickets/${ticketId}`);
-    return response.data;
-  },
-  create: async (payload) => {
-    const response = await api.post("/tickets", payload);
-    return response.data;
-  },
-  updateByEmployee: async (ticketId, payload) => {
-    const response = await api.put(`/tickets/${ticketId}/employee`, payload);
-    return response.data;
-  },
-  updateByAdmin: async (ticketId, payload) => {
-    const response = await api.put(`/tickets/${ticketId}/admin`, payload);
-    return response.data;
-  },
-};
+  const response = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: form.toString(),
+  })
+  const data = await handleResponse(response)
+  setToken(data.access_token)
+  return data
+}
 
-export const adminApi = {
-  listUsers: async (params = {}) => {
-    const response = await api.get("/users", { params });
-    return response.data;
-  },
-  updateUserRole: async (userId, role) => {
-    const response = await api.put(`/users/${userId}/role`, { role });
-    return response.data;
-  },
-  dashboard: async () => {
-    const response = await api.get("/dashboard");
-    return response.data;
-  },
-};
+export async function getMe() {
+  const response = await fetch(`${API_URL}/auth/me`, {
+    headers: authHeaders(),
+  })
+  return handleResponse(response)
+}
+
+// ==================== ITEMS API ====================
+
+export async function fetchItems(search = "", skip = 0, limit = 20) {
+  const params = new URLSearchParams()
+  if (search) params.append("search", search)
+  params.append("skip", skip)
+  params.append("limit", limit)
+
+  const response = await fetch(`${API_URL}/items?${params}`, {
+    headers: authHeaders(),
+  })
+  return handleResponse(response)
+}
+
+export async function createItem(itemData) {
+  const response = await fetch(`${API_URL}/items`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(itemData),
+  })
+  return handleResponse(response)
+}
+
+export async function updateItem(id, itemData) {
+  const response = await fetch(`${API_URL}/items/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(itemData),
+  })
+  return handleResponse(response)
+}
+
+export async function deleteItem(id) {
+  const response = await fetch(`${API_URL}/items/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  })
+  return handleResponse(response)
+}
+
+export async function checkHealth() {
+  try {
+    const response = await fetch(`${API_URL}/health`)
+    const data = await response.json()
+    return data.status === "healthy"
+  } catch {
+    return false
+  }
+}

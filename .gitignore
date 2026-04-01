@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 venv/
 .env
+requirements.txt
 
 # Node
 node_modules/
