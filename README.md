@@ -438,3 +438,20 @@ CC-KELOMPOK-A-ANTEK-ANTEK-ASING
 │
 └── .gitignore
 ```
+
+
+## 🐳 Docker Deployment (Modul 5)
+
+Aplikasi ini sudah di-containerize menggunakan Docker.
+
+**Cara Menjalankan Backend dan Frontend dengan Docker:**
+1. Pastikan Docker Desktop sudah berjalan.
+2. Build image backend: `docker build -t notyourkisee/cloudapp-backend:v1 ./backend`
+3. Build image frontend: `docker build -t notyourkisee/cloudapp-frontend:v1 ./frontend`
+4. Jalankan backend: `docker run -d --name backend -p 8000:8000 --env-file backend/.env notyourkisee/cloudapp-backend:v1`
+5. Jalankan frontend: `docker run -d --name frontend -p 3000:80 notyourkisee/cloudapp-frontend:v1`
+6. Akses API docs di: `http://localhost:8000/docs`
+7. Akses frontend di: `http://localhost:3000`
+
+**Verifikasi Healthcheck Backend:**
+- `docker inspect --format='{{.State.Health.Status}}' backend`
