@@ -1,32 +1,45 @@
 # ============================================================
-# Stage: Production Image
+# Stage 1: Install dependencies (Builder)
 # ============================================================
+FROM python:3.12-slim AS builder
 
-# 1. Base image — Python 3.12 slim (debian minimal, ~50MB)
-FROM python:3.12-slim
-
-# 2. Set working directory di dalam container
 WORKDIR /app
-
-# 3. Copy HANYA requirements.txt dulu (cache optimization)
-#    Layer ini hanya rebuild jika requirements.txt berubah
 COPY requirements.txt .
 
-# 4. Install Python dependencies
-#    --no-cache-dir: jangan simpan pip cache (hemat space)
+# Buat virtual environment khusus di dalam container
+RUN python -m venv /opt/venv
+
+# Pastikan pip berjalan di dalam venv tersebut
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install dependencies ke dalam venv
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 5. Copy seluruh kode aplikasi
-#    Layer ini rebuild setiap kali kode berubah
+# ============================================================
+# Stage 2: Production (Final Image yang Sangat Ringan)
+# ============================================================
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# 1. COPY HANYA virtual environment dari Stage 1 (Tinggalkan sampah build-nya)
+COPY --from=builder /opt/venv /opt/venv
+
+# Pastikan aplikasi pakai python dari venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# 2. COPY kode aplikasi Boss
 COPY . .
 
-# Buat non-root user demi keamanan
-RUN useradd -m appuser
+# 3. Setup Keamanan Non-Root (Sesuai PDF)
+RUN useradd -m appuser && chown -R appuser /app
 USER appuser
 
-# 6. Dokumentasikan port yang digunakan
 EXPOSE 8000
 
-# 7. Command untuk menjalankan aplikasi
-#    --host 0.0.0.0: agar bisa diakses dari luar container
+# 4. Fitur Pendeteksi Jantung (Healthcheck)
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/docs || exit 1
+
+# 5. Jalankan Aplikasi
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
