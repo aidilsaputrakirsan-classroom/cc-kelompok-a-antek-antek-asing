@@ -1,0 +1,46 @@
+
+services:
+  # 1. Kontainer Database (PostgreSQL Asli)
+  db:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Kontainer Backend (Mahakarya Boss Glee)
+  backend:
+    image: notyourkisee/cloudapp-backend:v1
+    container_name: api-backend
+    environment:
+      DATABASE_URL: postgresql://myuser:mypassword@db:5432/mydatabase
+      # Tambahkan baris ini untuk membuka gerbang CORS Frontend:
+      ALLOWED_ORIGINS: "http://localhost:3000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # 3. Kontainer Frontend (Tampilan Web)
+  frontend:
+    image: notyourkisee/cloudapp-frontend:v1
+    container_name: web-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+# Volume untuk menyimpan data agar tidak hilang saat kontainer mati
+volumes:
+  pgdata:
