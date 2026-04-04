@@ -27,7 +27,7 @@ export default function AppNavbar() {
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3">
         <div>
-          <p className="text-sm font-semibold text-slate-800">E-Ticketing IT Support</p>
+          <p className="text-sm font-semibold text-slate-800">Antick Async</p>
           <p className="text-xs text-slate-500">Role: {user?.role}</p>
         </div>
 
