@@ -3,7 +3,7 @@
 # ============================================================
 
 # 1. Base image — Python 3.12 slim (debian minimal, ~50MB)
-FROM python:3.12-slim
+FROM python:3.11-slim
 
 # 2. Set working directory di dalam container
 WORKDIR /app
@@ -14,6 +14,7 @@ COPY requirements.txt .
 
 # 4. Install Python dependencies
 #    --no-cache-dir: jangan simpan pip cache (hemat space)
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 5. Copy seluruh kode aplikasi
