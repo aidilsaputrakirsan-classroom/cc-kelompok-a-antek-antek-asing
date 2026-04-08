@@ -128,7 +128,7 @@ def team_info():
     }
 
 # === USERS (Admin Only) ===
-@app.get("/users", dependencies=[Depends(allow_admins)])
+@app.get("/users", dependencies=[Depends(allow_it_and_admins)])
 def list_users(skip: int = Query(0, ge=0), limit: int = Query(20, ge=1), db: Session = Depends(get_db)):
     return crud.get_users(db, skip, limit)
 
@@ -215,7 +215,7 @@ def delete_ticket(ticket_id: int, db: Session = Depends(get_db)):
     return None
 
 # === DASHBOARD ===
-@app.get("/dashboard", dependencies=[Depends(allow_admins)])
+@app.get("/dashboard", dependencies=[Depends(allow_it_and_admins)])
 def get_dashboard(db: Session = Depends(get_db)):
     """Mengambil metric untuk dashboard (Count & Chart Data)"""
     return crud.get_dashboard_metrics(db)
