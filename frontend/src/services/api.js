@@ -1,124 +1,164 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const TOKEN_KEY = "ticketflow_auth_token";
 
-// ==================== TOKEN MANAGEMENT ====================
+let unauthorizedHandler = null;
 
-let authToken = null
-
-export function setToken(token) {
-  authToken = token
+function buildError(status, detail) {
+  const error = new Error(detail || `Request gagal (${status})`);
+  error.status = status;
+  error.detail = detail;
+  return error;
 }
 
-export function getToken() {
-  return authToken
+function normalizeDetail(detail) {
+  if (Array.isArray(detail)) {
+    return detail[0]?.msg || "Request tidak valid.";
+  }
+  return detail;
 }
 
-export function clearToken() {
-  authToken = null
+export const tokenStorage = {
+  getToken() {
+    return localStorage.getItem(TOKEN_KEY);
+  },
+  setToken(token) {
+    localStorage.setItem(TOKEN_KEY, token);
+  },
+  clearToken() {
+    localStorage.removeItem(TOKEN_KEY);
+  },
+};
+
+export function setUnauthorizedHandler(handler) {
+  unauthorizedHandler = handler;
 }
 
 function authHeaders() {
-  const headers = {}
-  if (authToken) {
-    headers["Authorization"] = `Bearer ${authToken}`
-  }
-  return headers
+  const token = tokenStorage.getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-// Helper: handle response errors
-async function handleResponse(response) {
+async function request(path, options = {}) {
+  const { body, isForm = false, headers = {}, ...rest } = options;
+  const requestHeaders = {
+    ...authHeaders(),
+    ...headers,
+  };
+
+  const init = {
+    ...rest,
+    headers: requestHeaders,
+  };
+
+  if (body !== undefined) {
+    if (isForm) {
+      init.body = body;
+    } else {
+      requestHeaders["Content-Type"] = "application/json";
+      init.body = JSON.stringify(body);
+    }
+  }
+
+  const response = await fetch(`${API_URL}${path}`, init);
+
   if (response.status === 401) {
-    clearToken()
-    throw new Error("UNAUTHORIZED")
+    tokenStorage.clearToken();
+    if (typeof unauthorizedHandler === "function") {
+      unauthorizedHandler();
+    }
   }
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.detail || `Request gagal (${response.status})`)
+    const errorData = await response.json().catch(() => ({}));
+    throw buildError(response.status, normalizeDetail(errorData.detail));
   }
-  // 204 No Content
-  if (response.status === 204) return null
-  return response.json()
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return response.json();
 }
 
-// ==================== AUTH API ====================
+export const authApi = {
+  register(payload) {
+    return request("/auth/register", { method: "POST", body: payload });
+  },
+  async login({ email, password }) {
+    const form = new URLSearchParams();
+    form.append("username", email);
+    form.append("password", password);
+    form.append("grant_type", "password");
 
-export async function register(userData) {
-  const response = await fetch(`${API_URL}/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(userData),
-  })
-  return handleResponse(response)
-}
+    return request("/auth/login", {
+      method: "POST",
+      body: form.toString(),
+      isForm: true,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+  },
+  me() {
+    return request("/auth/me");
+  },
+};
 
-export async function login(email, password) {
-  const form = new URLSearchParams()
-  form.append("username", email)
-  form.append("password", password)
-  form.append("grant_type", "password")
+export const ticketApi = {
+  list({ search = "", skip = 0, limit = 20 } = {}) {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    params.append("skip", String(skip));
+    params.append("limit", String(limit));
+    return request(`/tickets?${params.toString()}`);
+  },
+  detail(id) {
+    return request(`/tickets/${id}`);
+  },
+  create(payload) {
+    return request("/tickets", { method: "POST", body: payload });
+  },
+  updateByEmployee(id, payload) {
+    return request(`/tickets/${id}/employee`, { method: "PUT", body: payload });
+  },
+  updateByAdmin(id, payload) {
+    return request(`/tickets/${id}/admin`, { method: "PUT", body: payload });
+  },
+  remove(id) {
+    return request(`/tickets/${id}`, { method: "DELETE" });
+  },
+};
 
-  const response = await fetch(`${API_URL}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: form.toString(),
-  })
-  const data = await handleResponse(response)
-  setToken(data.access_token)
-  return data
-}
+export const categoryApi = {
+  list() {
+    return request("/categories");
+  },
+  create(payload) {
+    return request("/categories", { method: "POST", body: payload });
+  },
+  update(id, payload) {
+    return request(`/categories/${id}`, { method: "PUT", body: payload });
+  },
+};
 
-export async function getMe() {
-  const response = await fetch(`${API_URL}/auth/me`, {
-    headers: authHeaders(),
-  })
-  return handleResponse(response)
-}
-
-// ==================== ITEMS API ====================
-
-export async function fetchItems(search = "", skip = 0, limit = 20) {
-  const params = new URLSearchParams()
-  if (search) params.append("search", search)
-  params.append("skip", skip)
-  params.append("limit", limit)
-
-  const response = await fetch(`${API_URL}/items?${params}`, {
-    headers: authHeaders(),
-  })
-  return handleResponse(response)
-}
-
-export async function createItem(itemData) {
-  const response = await fetch(`${API_URL}/items`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify(itemData),
-  })
-  return handleResponse(response)
-}
-
-export async function updateItem(id, itemData) {
-  const response = await fetch(`${API_URL}/items/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    body: JSON.stringify(itemData),
-  })
-  return handleResponse(response)
-}
-
-export async function deleteItem(id) {
-  const response = await fetch(`${API_URL}/items/${id}`, {
-    method: "DELETE",
-    headers: authHeaders(),
-  })
-  return handleResponse(response)
-}
+export const adminApi = {
+  listUsers({ skip = 0, limit = 20 } = {}) {
+    const params = new URLSearchParams();
+    params.append("skip", String(skip));
+    params.append("limit", String(limit));
+    return request(`/users?${params.toString()}`);
+  },
+  updateUserRole(userId, role) {
+    return request(`/users/${userId}/role`, { method: "PUT", body: { role } });
+  },
+  dashboard() {
+    return request("/dashboard");
+  },
+};
 
 export async function checkHealth() {
   try {
-    const response = await fetch(`${API_URL}/health`)
-    const data = await response.json()
-    return data.status === "healthy"
+    const data = await request("/health");
+    return data.status === "healthy";
   } catch {
-    return false
+    return false;
   }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { authApi, tokenStorage } from "../services/api";
+import { authApi, setUnauthorizedHandler, tokenStorage } from "../services/api";
 import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }) {
@@ -7,6 +7,11 @@ export function AuthProvider({ children }) {
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   useEffect(() => {
+    setUnauthorizedHandler(() => {
+      tokenStorage.clearToken();
+      setUser(null);
+    });
+
     const bootstrap = async () => {
       const token = tokenStorage.getToken();
       if (!token) {
@@ -25,6 +30,8 @@ export function AuthProvider({ children }) {
     };
 
     bootstrap();
+
+    return () => setUnauthorizedHandler(null);
   }, []);
 
   const login = async ({ email, password }) => {
