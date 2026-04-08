@@ -19,13 +19,26 @@ function normalizeDetail(detail) {
 
 export const tokenStorage = {
   getToken() {
-    return localStorage.getItem(TOKEN_KEY);
+    try {
+      return localStorage.getItem(TOKEN_KEY);
+    } catch {
+      return null;
+    }
   },
   setToken(token) {
-    localStorage.setItem(TOKEN_KEY, token);
+    try {
+      localStorage.setItem(TOKEN_KEY, token);
+      return true;
+    } catch {
+      return false;
+    }
   },
   clearToken() {
-    localStorage.removeItem(TOKEN_KEY);
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      // Ignore storage errors in restricted browser contexts.
+    }
   },
 };
 
