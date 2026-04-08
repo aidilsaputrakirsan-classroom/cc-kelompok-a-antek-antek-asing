@@ -68,8 +68,10 @@ app = FastAPI(
 )
 
 # CORS
+# Kita set default-nya untuk Vite (5173) dan React standar (3000)
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
 origins_list = [origin.strip() for origin in allowed_origins.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins_list,
