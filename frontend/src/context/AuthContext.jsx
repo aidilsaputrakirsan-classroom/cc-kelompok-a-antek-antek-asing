@@ -4,6 +4,13 @@ import { AuthContext } from "./auth-context";
 
 let bootstrapSessionPromise = null;
 
+function normalizeUserRole(user) {
+  if (!user) return null;
+  const allowedRoles = ["superadmin", "admin", "it_employee", "employee"];
+  if (!allowedRoles.includes(user.role)) return null;
+  return { ...user, role: user.role };
+}
+
 async function bootstrapSession() {
   const token = tokenStorage.getToken();
   if (!token) {
@@ -13,6 +20,14 @@ async function bootstrapSession() {
   if (!bootstrapSessionPromise) {
     bootstrapSessionPromise = authApi
       .me()
+      .then((me) => {
+        const normalizedUser = normalizeUserRole(me);
+        if (!normalizedUser) {
+          tokenStorage.clearToken();
+          return null;
+        }
+        return normalizedUser;
+      })
       .catch(() => {
         tokenStorage.clearToken();
         return null;
@@ -28,6 +43,28 @@ async function bootstrapSession() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+
+  const login = async ({ email, password }) => {
+    const data = await authApi.login({ email, password });
+    tokenStorage.setToken(data.access_token);
+
+    const normalizedUser = normalizeUserRole(data.user);
+    if (!normalizedUser) {
+      tokenStorage.clearToken();
+      throw new Error("Role pengguna tidak valid.");
+    }
+    setUser(normalizedUser);
+    return normalizedUser;
+  };
+
+  const register = async ({ email, name, password }) => {
+    return authApi.register({ email, name, password });
+  };
+
+  const logout = () => {
+    tokenStorage.clearToken();
+    setUser(null);
+  };
 
   useEffect(() => {
     let isActive = true;
@@ -62,22 +99,6 @@ export function AuthProvider({ children }) {
       setUnauthorizedHandler(null);
     };
   }, []);
-
-  const login = async ({ email, password }) => {
-    const data = await authApi.login({ email, password });
-    tokenStorage.setToken(data.access_token);
-    setUser(data.user);
-    return data.user;
-  };
-
-  const register = async ({ email, name, password }) => {
-    return authApi.register({ email, name, password });
-  };
-
-  const logout = () => {
-    tokenStorage.clearToken();
-    setUser(null);
-  };
 
   const value = useMemo(
     () => ({
