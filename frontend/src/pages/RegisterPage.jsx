@@ -1,16 +1,24 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 
 export default function RegisterPage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { register } = useAuth();
   const [form, setForm] = useState({ email: "", name: "", password: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [entered, setEntered] = useState(false);
+  const fromLogin = location.state?.from === "login";
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const onChange = (event) => {
     const { name, value } = event.target;
@@ -26,7 +34,7 @@ export default function RegisterPage() {
     try {
       await register(form);
       setSuccess("Registrasi berhasil, silakan login.");
-      setTimeout(() => navigate("/login"), 800);
+      setTimeout(() => navigate("/login", { state: { from: "register" } }), 800);
     } catch (err) {
       setError(err.message || "Registrasi gagal.");
     } finally {
@@ -35,36 +43,66 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center px-4 py-8">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,#dbeafe_0%,#eff6ff_45%,#f8fafc_100%)]" />
-      <section className="grid w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] md:grid-cols-[1fr_1.2fr]">
-        <aside className="relative flex min-h-[320px] flex-col justify-between bg-[linear-gradient(160deg,#1e3a8a_0%,#2563eb_55%,#1d4ed8_100%)] p-7 text-white md:min-h-[600px] md:p-10">
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[linear-gradient(140deg,#0b67d5_0%,#1184ee_48%,#0d73df_100%)] px-4 py-8">
+      <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:72px_72px]" />
+      <div className="pointer-events-none absolute -left-20 bottom-[-120px] h-[340px] w-[340px] rounded-full bg-cyan-300/25 blur-3xl" />
+      <div className="pointer-events-none absolute -right-16 top-[-120px] h-[320px] w-[320px] rounded-full bg-blue-200/20 blur-3xl" />
+
+      <section
+        className={`relative z-10 w-full max-w-[1060px] overflow-hidden rounded-[18px] border border-white/30 bg-white shadow-[0_30px_80px_-35px_rgba(2,16,44,0.55)] transition-all duration-300 md:grid md:grid-cols-[1.08fr_1fr] ${
+          entered
+            ? "translate-x-0 opacity-100"
+            : fromLogin
+              ? "translate-x-10 opacity-0"
+              : "-translate-x-10 opacity-0"
+        }`}
+      >
+        <aside className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#2592ea_0%,#4aa6f2_52%,#61b1f5_100%)] p-6 text-white md:min-h-[600px] md:p-8">
+          <div className="pointer-events-none absolute -right-8 top-20 h-36 w-36 rounded-full border border-white/25" />
+          <div className="pointer-events-none absolute -left-10 bottom-[-84px] h-56 w-56 rounded-full bg-blue-950/25 blur-2xl" />
+
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-blue-100/90">Support System</p>
-            <h1 className="mt-4 text-3xl font-semibold leading-tight">TicketFlow</h1>
-            <p className="mt-3 max-w-sm text-sm text-blue-100/95">
-              Buat akun baru untuk mengajukan tiket, memantau status issue, dan berkolaborasi dengan tim IT.
-            </p>
+            <h1 className="text-[40px] font-extrabold leading-[0.95] tracking-tight drop-shadow-[0_5px_14px_rgba(5,54,112,0.26)] md:text-[56px]">
+              ANTICK
+              <br />
+              ASYNC
+            </h1>
+            <p className="mt-3 text-lg text-blue-50/95">"Support That Works on Your Time"</p>
           </div>
-          <p className="text-xs text-blue-100/90">Cloud Team Dashboard Workspace</p>
-          <div className="pointer-events-none absolute -bottom-8 -right-8 h-36 w-36 rounded-full bg-white/15 blur-2xl" />
+
+          <div
+            className="relative h-[190px] overflow-hidden rounded-2xl border border-white/25 bg-[linear-gradient(180deg,#1863c7_0%,#0f4da8_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] md:h-[290px]"
+            aria-hidden="true"
+          >
+            <div className="absolute -left-6 right-8 bottom-0 top-[40%] rounded-tl-[42px] bg-[linear-gradient(180deg,#2f8ee5_0%,#3688db_46%,#2364bb_100%)]" />
+            <div className="absolute left-8 right-16 top-[18%] h-[42%] rounded-lg bg-slate-100 shadow-[0_14px_24px_rgba(7,27,72,0.35)]" />
+            <div className="absolute left-12 right-20 top-[22%] h-[4px] rounded bg-slate-300" />
+            <div className="absolute left-12 right-[38%] top-[28%] h-[4px] rounded bg-slate-300" />
+            <div className="absolute bottom-[23%] right-12 h-[82px] w-[120px] rounded-md border border-white/15 bg-slate-900/60" />
+            <div className="absolute bottom-[23%] left-10 h-[90px] w-[88px] rounded-md border border-white/15 bg-slate-900/70" />
+          </div>
+
+          <p className="text-xs text-blue-100/90">Digital IT Support Environment</p>
         </aside>
 
-        <div className="p-6 md:p-10">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-slate-900">Register</h2>
-            <p className="mt-1 text-sm text-slate-500">Buat akun employee untuk membuat tiket.</p>
+        <div className="flex flex-col justify-center bg-[#f4f4f5] p-6 md:p-10">
+          <div>
+            <h2 className="text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">Sign up</h2>
+            <p className="mt-2 text-base text-slate-600 md:text-xl">
+              Create your account to start submitting tickets.
+            </p>
           </div>
 
-          <form className="space-y-4" onSubmit={onSubmit}>
+          <form className="mt-8 space-y-4" onSubmit={onSubmit}>
             <Input
-              label="Nama"
+              label="Full Name"
               name="name"
               required
               minLength={2}
               value={form.name}
               onChange={onChange}
-              placeholder="Nama Anda"
+              placeholder="Enter your full name"
+              className="rounded-xl border-slate-300 bg-white py-3 text-base"
             />
 
             <Input
@@ -74,7 +112,8 @@ export default function RegisterPage() {
               required
               value={form.email}
               onChange={onChange}
-              placeholder="user@student.itk.ac.id"
+              placeholder="Enter your email"
+              className="rounded-xl border-slate-300 bg-white py-3 text-base"
             />
 
             <Input
@@ -85,21 +124,32 @@ export default function RegisterPage() {
               minLength={8}
               value={form.password}
               onChange={onChange}
-              placeholder="Minimal 8 karakter + simbol"
+              placeholder="Create your password"
+              className="rounded-xl border-slate-300 bg-white py-3 text-base"
             />
 
             {error && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
             {success && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</p>}
 
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Memproses..." : "Register"}
+            <Button type="submit" disabled={loading} className="w-full rounded-xl py-3 text-lg">
+              {loading ? "Processing..." : "Get Started"}
             </Button>
           </form>
 
-          <p className="mt-5 text-sm text-slate-600">
-            Sudah punya akun?{" "}
-            <Link to="/login" className="font-medium text-slate-900 underline-offset-4 hover:underline">
-              Login
+          <div className="mt-5 flex items-center gap-3 text-slate-300">
+            <div className="h-px flex-1 bg-slate-300" />
+            <span className="text-sm">or</span>
+            <div className="h-px flex-1 bg-slate-300" />
+          </div>
+
+          <p className="mt-4 text-center text-base text-slate-600 md:text-xl">
+            Already a member?{" "}
+            <Link
+              to="/login"
+              state={{ from: "register" }}
+              className="font-semibold text-blue-600 underline-offset-4 hover:underline"
+            >
+              Sign in
             </Link>
           </p>
         </div>

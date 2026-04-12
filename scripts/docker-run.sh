@@ -35,7 +35,7 @@ case $ACTION in
       --name backend \
       --network cloudnet \
       -e DATABASE_URL="postgresql://postgres:postgres123@db:5432/cloudapp" \
-      -e ALLOWED_ORIGINS="http://localhost:3000" \
+      -e ALLOWED_ORIGINS="http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173" \
       -p 8000:8000 \
       notyourkisee/cloudapp-backend:v2
 

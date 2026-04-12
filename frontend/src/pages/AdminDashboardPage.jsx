@@ -230,7 +230,7 @@ export default function AdminDashboardPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{tabMeta[activeTab].title}</h1>
           <p className="mt-1 text-sm text-slate-500">{tabMeta[activeTab].subtitle}</p>
         </div>
-        <Button onClick={loadData}>Refresh Dashboard</Button>
+        <Button className="w-full sm:w-auto" onClick={loadData}>Refresh Dashboard</Button>
       </section>
 
       {activeTab === "overview" && (
@@ -256,7 +256,7 @@ export default function AdminDashboardPage() {
           <div className="grid gap-4 xl:grid-cols-[1.7fr_1fr]">
             <Card title="Ticket List" subtitle="Recent tickets in system.">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
+                <table className="min-w-[680px] w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500">
                       <th className="py-2">Ticket ID</th>
@@ -300,7 +300,7 @@ export default function AdminDashboardPage() {
 
       {activeTab === "tickets" && (
         <Card title="All Tickets" subtitle="Manage assignee, status, and find ticket quickly.">
-          <div className="mb-4 grid gap-2 md:grid-cols-4">
+          <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <Input
               label="Search"
               placeholder="title/description"
@@ -352,7 +352,7 @@ export default function AdminDashboardPage() {
             <p className="text-sm text-slate-500">No ticket data matches your filters.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="min-w-[860px] w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500">
                     <th className="py-2">Title</th>
@@ -411,7 +411,7 @@ export default function AdminDashboardPage() {
       {activeTab === "users" && (
         <Card title="User Management" subtitle="Change role assignments for the team.">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="min-w-[760px] w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500">
                   <th className="py-2">Name</th>
@@ -460,12 +460,12 @@ export default function AdminDashboardPage() {
               onChange={(e) => setCategoryForm((prev) => ({ ...prev, description: e.target.value }))}
             />
             <div className="self-end">
-              <Button type="submit">Add Category</Button>
+              <Button type="submit" className="w-full md:w-auto">Add Category</Button>
             </div>
           </form>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="min-w-[620px] w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500">
                   <th className="py-2">Name</th>

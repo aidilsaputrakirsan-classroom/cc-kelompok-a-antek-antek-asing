@@ -55,8 +55,8 @@ export default function AppShell() {
   }, [isAdminLike, user?.role]);
 
   return (
-    <div className="h-screen overflow-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#eef3f9_100%)]">
-      <div className="mx-auto flex h-full w-full max-w-[1400px] gap-4 p-3 md:gap-5 md:p-4">
+    <div className="min-h-dvh bg-[linear-gradient(180deg,#f8fbff_0%,#eef3f9_100%)] md:h-screen md:overflow-hidden">
+      <div className="mx-auto flex min-h-dvh w-full max-w-[1400px] gap-3 p-3 md:h-full md:gap-5 md:p-4">
         <aside
           className={`fixed inset-y-0 left-0 z-40 w-72 border-r border-slate-200 bg-white/95 p-4 backdrop-blur-md transition-transform md:static md:h-full md:translate-x-0 md:rounded-2xl md:border ${
             mobileOpen ? "translate-x-0" : "-translate-x-full"
@@ -111,8 +111,8 @@ export default function AppShell() {
           />
         )}
 
-        <section className="flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/85 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.45)]">
-          <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3 md:px-6">
+        <section className="flex min-h-dvh min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white/85 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.45)] md:h-full md:min-h-0 md:rounded-2xl">
+          <header className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 md:px-6">
             <div>
               <p className="text-sm font-semibold text-slate-800">Dashboard</p>
               <p className="text-xs text-slate-500">Professional support overview</p>
@@ -127,7 +127,7 @@ export default function AppShell() {
             </Button>
           </header>
 
-          <main className="flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
+          <main className="flex-1 overflow-y-auto px-3 py-4 md:px-6 md:py-5">
             <Outlet />
           </main>
         </section>
