@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
+import SplineCardScene from "../components/SplineCardScene";
+import CosmicBackdrop from "../components/CosmicBackdrop";
 
 export default function RegisterPage() {
-  const location = useLocation();
   const navigate = useNavigate();
   const { register } = useAuth();
   const [form, setForm] = useState({ email: "", name: "", password: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [entered, setEntered] = useState(false);
-  const fromLogin = location.state?.from === "login";
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setEntered(true));
@@ -43,57 +44,32 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[linear-gradient(140deg,#0b67d5_0%,#1184ee_48%,#0d73df_100%)] px-4 py-8">
-      <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:72px_72px]" />
-      <div className="pointer-events-none absolute -left-20 bottom-[-120px] h-[340px] w-[340px] rounded-full bg-cyan-300/25 blur-3xl" />
-      <div className="pointer-events-none absolute -right-16 top-[-120px] h-[320px] w-[320px] rounded-full bg-blue-200/20 blur-3xl" />
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[linear-gradient(140deg,#000000_0%,#1184ee_48%,#000000_100%)] px-4 py-8">
+      <CosmicBackdrop />
 
       <section
-        className={`relative z-10 w-full max-w-[1060px] overflow-hidden rounded-[18px] border border-white/30 bg-white shadow-[0_30px_80px_-35px_rgba(2,16,44,0.55)] transition-all duration-300 md:grid md:grid-cols-[1.08fr_1fr] ${
-          entered
-            ? "translate-x-0 opacity-100"
-            : fromLogin
-              ? "translate-x-10 opacity-0"
-              : "-translate-x-10 opacity-0"
-        }`}
+        className={`relative z-10 w-full max-w-[1060px] overflow-hidden rounded-[30px] bg-white shadow-[0_30px_80px_-35px_rgba(2,16,44,0.55)] transition-all duration-500 ease-out md:grid md:grid-cols-[1.08fr_1fr] ${entered ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}
       >
-        <aside className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#2592ea_0%,#4aa6f2_52%,#61b1f5_100%)] p-6 text-white md:min-h-[600px] md:p-8">
-          <div className="pointer-events-none absolute -right-8 top-20 h-36 w-36 rounded-full border border-white/25" />
-          <div className="pointer-events-none absolute -left-10 bottom-[-84px] h-56 w-56 rounded-full bg-blue-950/25 blur-2xl" />
+        <aside className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#2592ea_0%,#4aa6f2_52%,#61b1f5_100%)] px-6 pt-6 pb-0 text-white md:min-h-[600px] md:rounded-r-[36px] md:px-8 md:pt-8 md:pb-0">
+          <div className="pointer-events-none absolute -right-8 top-20 h-36 w-36 rounded-full" />
 
-          <div>
-            <h1 className="text-[40px] font-extrabold leading-[0.95] tracking-tight drop-shadow-[0_5px_14px_rgba(5,54,112,0.26)] md:text-[56px]">
-              ANTICK
-              <br />
-              ASYNC
-            </h1>
+          <div className="relative flex flex-col items-center gap-3">
+            <img src="/image/AA_HD.png" alt="Logo Antick Async" className="h-24" />
             <p className="mt-3 text-lg text-blue-50/95">"Support That Works on Your Time"</p>
           </div>
 
-          <div
-            className="relative h-[190px] overflow-hidden rounded-2xl border border-white/25 bg-[linear-gradient(180deg,#1863c7_0%,#0f4da8_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] md:h-[290px]"
-            aria-hidden="true"
-          >
-            <div className="absolute -left-6 right-8 bottom-0 top-[40%] rounded-tl-[42px] bg-[linear-gradient(180deg,#2f8ee5_0%,#3688db_46%,#2364bb_100%)]" />
-            <div className="absolute left-8 right-16 top-[18%] h-[42%] rounded-lg bg-slate-100 shadow-[0_14px_24px_rgba(7,27,72,0.35)]" />
-            <div className="absolute left-12 right-20 top-[22%] h-[4px] rounded bg-slate-300" />
-            <div className="absolute left-12 right-[38%] top-[28%] h-[4px] rounded bg-slate-300" />
-            <div className="absolute bottom-[23%] right-12 h-[82px] w-[120px] rounded-md border border-white/15 bg-slate-900/60" />
-            <div className="absolute bottom-[23%] left-10 h-[90px] w-[88px] rounded-md border border-white/15 bg-slate-900/70" />
-          </div>
-
-          <p className="text-xs text-blue-100/90">Digital IT Support Environment</p>
+          <SplineCardScene className="relative mt-6 h-[210px] w-full flex-1 overflow-hidden" />
         </aside>
 
-        <div className="flex flex-col justify-center bg-[#f4f4f5] p-6 md:p-10">
+        <div className="flex flex-col justify-center bg-white p-6 md:p-10">
           <div>
-            <h2 className="text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">Sign up</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-5xl">Sign up</h2>
             <p className="mt-2 text-base text-slate-600 md:text-xl">
               Create your account to start submitting tickets.
             </p>
           </div>
 
-          <form className="mt-8 space-y-4" onSubmit={onSubmit}>
+          <form className="mt-8 space-y-5" onSubmit={onSubmit}>
             <Input
               label="Full Name"
               name="name"
@@ -102,7 +78,7 @@ export default function RegisterPage() {
               value={form.name}
               onChange={onChange}
               placeholder="Enter your full name"
-              className="rounded-xl border-slate-300 bg-white py-3 text-base"
+              className="rounded-xl border-blue-300 bg-white py-3 text-base"
             />
 
             <Input
@@ -113,25 +89,67 @@ export default function RegisterPage() {
               value={form.email}
               onChange={onChange}
               placeholder="Enter your email"
-              className="rounded-xl border-slate-300 bg-white py-3 text-base"
+              className="rounded-xl border-blue-300 bg-white py-3 text-base"
             />
 
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              required
-              minLength={8}
-              value={form.password}
-              onChange={onChange}
-              placeholder="Create your password"
-              className="rounded-xl border-slate-300 bg-white py-3 text-base"
-            />
+            <label className="block text-sm text-slate-800">
+              <span className="font-medium">Password</span>
+              <div className="mt-1 flex items-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-300">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  minLength={8}
+                  value={form.password}
+                  onChange={onChange}
+                  placeholder="Create your password"
+                  className="w-full border-none bg-transparent text-base outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="ml-2 text-slate-500 transition-colors hover:text-slate-700"
+                >
+                  {showPassword ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="h-5 w-5"
+                    >
+                      <path d="M3 3l18 18" />
+                      <path d="M10.6 10.6A2 2 0 0012 14a2 2 0 001.4-.6" />
+                      <path d="M9.9 4.2A10.5 10.5 0 0112 4c5 0 9.3 3.1 11 7.5a11.7 11.7 0 01-3.2 4.7" />
+                      <path d="M6.6 6.7C4.4 8 2.7 9.9 1 11.5a12.2 12.2 0 003.7 5" />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="h-5 w-5"
+                    >
+                      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </label>
 
             {error && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
             {success && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</p>}
 
-            <Button type="submit" disabled={loading} className="w-full rounded-xl py-3 text-lg">
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-[#2592ea] py-3 text-lg hover:bg-blue-500"
+            >
               {loading ? "Processing..." : "Get Started"}
             </Button>
           </form>
@@ -147,7 +165,7 @@ export default function RegisterPage() {
             <Link
               to="/login"
               state={{ from: "register" }}
-              className="font-semibold text-blue-600 underline-offset-4 hover:underline"
+              className="font-semibold text-[#2592ea] underline-offset-4 hover:underline"
             >
               Sign in
             </Link>

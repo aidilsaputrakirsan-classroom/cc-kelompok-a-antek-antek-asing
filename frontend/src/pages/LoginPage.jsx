@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
+import SplineCardScene from "../components/SplineCardScene";
+import CosmicBackdrop from "../components/CosmicBackdrop";
 
 export default function LoginPage() {
-  const location = useLocation();
   const navigate = useNavigate();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
@@ -15,7 +16,6 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [entered, setEntered] = useState(false);
-  const fromRegister = location.state?.from === "register";
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setEntered(true));
@@ -39,25 +39,25 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#0a5fc6] bg-[url('/image/bg-login-page.png')] bg-cover bg-center bg-no-repeat px-4 py-8">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(140deg,rgba(6,39,96,0.55)_0%,rgba(15,98,194,0.35)_52%,rgba(9,85,168,0.5)_100%)]" />
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[linear-gradient(140deg,#000000_0%,#1184ee_48%,#000000_100%)] px-4 py-8">
+      <CosmicBackdrop />
 
       <section
-        className={`relative z-10 w-full max-w-[1060px] overflow-hidden rounded-[18px] bg-white shadow-[0_30px_80px_-35px_rgba(2,16,44,0.55)] transition-all duration-300 md:grid md:grid-cols-[1.08fr_1fr] ${
+        className={`relative z-10 w-full max-w-[1060px] overflow-hidden rounded-[30px] bg-white shadow-[0_30px_80px_-35px_rgba(2,16,44,0.55)] transition-all duration-500 ease-out md:grid md:grid-cols-[1.08fr_1fr] ${
           entered
-            ? "translate-x-0 opacity-100"
-            : fromRegister
-              ? "-translate-x-10 opacity-0"
-              : "translate-x-10 opacity-0"
+            ? "translate-y-0 opacity-100"
+            : "translate-y-8 opacity-0"
         }`}
       >
-        <aside className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#2592ea_0%,#4aa6f2_52%,#61b1f5_100%)] p-6 text-white md:min-h-[600px] md:p-8">
+        <aside className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#2592ea_0%,#4aa6f2_52%,#61b1f5_100%)] px-6 pt-6 pb-0 text-white md:min-h-[600px] md:rounded-r-[36px] md:px-8 md:pt-8 md:pb-0">
           <div className="pointer-events-none absolute -right-8 top-20 h-36 w-36 rounded-full" />
 
           <div className="relative flex flex-col items-center gap-3">
             <img src="/image/AA_HD.png" alt="Logo Antick Async" className="h-24" />
             <p className="mt-3 text-lg text-blue-50/95">"Support That Works on Your Time"</p>
           </div>
+
+          <SplineCardScene className="relative mt-6 h-[210px] w-full flex-1 overflow-hidden" />
         </aside>
 
         <div className="flex flex-col justify-center bg-white p-6 md:p-10">
@@ -81,7 +81,7 @@ export default function LoginPage() {
 
             <label className="block text-sm text-slate-800">
               <span className="font-medium">Password</span>
-              <div className="mt-1 flex items-center rounded-xl border border-blue-300  bg-white px-3 py-2.5">
+              <div className="mt-1 flex items-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-300">
                 <input
                   type={showPassword ? "text" : "password"}
                   required
@@ -93,9 +93,36 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="ml-2 text-xs font-medium text-slate-500 hover:text-slate-700"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="ml-2 text-slate-500 transition-colors hover:text-slate-700"
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="h-5 w-5"
+                    >
+                      <path d="M3 3l18 18" />
+                      <path d="M10.6 10.6A2 2 0 0012 14a2 2 0 001.4-.6" />
+                      <path d="M9.9 4.2A10.5 10.5 0 0112 4c5 0 9.3 3.1 11 7.5a11.7 11.7 0 01-3.2 4.7" />
+                      <path d="M6.6 6.7C4.4 8 2.7 9.9 1 11.5a12.2 12.2 0 003.7 5" />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="h-5 w-5"
+                    >
+                      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
                 </button>
               </div>
             </label>
@@ -110,7 +137,7 @@ export default function LoginPage() {
                 />
                 Remember me for 30 days
               </label>
-              <button type="button" className="font-medium text-blue-600 hover:text-blue-700">
+              <button type="button" className="font-medium text-[#2592ea] hover:text-black">
                 Forgot password?
               </button>
             </div>
@@ -120,7 +147,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-blue-600 py-3 text-lg hover:bg-blue-500"
+              className="w-full rounded-xl bg-[#2592ea] py-3 text-lg hover:bg-blue-500"
             >
               {loading ? "Processing..." : "Sign In"}
             </Button>
@@ -137,7 +164,7 @@ export default function LoginPage() {
             <Link
               to="/register"
               state={{ from: "login" }}
-              className="font-semibold text-blue-600 underline-offset-4 hover:underline"
+              className="font-semibold text-[#2592ea] underline-offset-4 hover:underline"
             >
               Sign up
             </Link>
