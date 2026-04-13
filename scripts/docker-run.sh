@@ -25,9 +25,9 @@ case $ACTION in
       -v pgdata:/var/lib/postgresql/data \
       postgres:16-alpine
 
-    # Wait for database to be ready (Simulasi wait-for-db.sh)
-    echo "⏳ Waiting for database..."
-    sleep 5
+    # Wait for database to be ready (Menggunakan wait-for-db.sh)
+    chmod +x ./scripts/wait-for-db.sh 2>/dev/null || true
+    bash ./scripts/wait-for-db.sh
 
     # Backend
     echo "🐍 Starting backend..."
