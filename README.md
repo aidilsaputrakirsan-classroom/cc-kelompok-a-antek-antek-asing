@@ -456,68 +456,55 @@ Aplikasi ini sudah di-containerize menggunakan Docker.
 **Verifikasi Healthcheck Backend:**
 - `docker inspect --format='{{.State.Health.Status}}' backend`
 
+<br><br>
 
-📌 Progress Pengembangan Aplikasi (Antick Async)
 
+
+### 📌 Progress  Aplikasi Antick Async
 Pada aplikasi Antick Async sistem sudah dapat digunakan untuk proses autentikasi pengguna serta menampilkan dashboard utama sebagai aktivitas user.
 
 ## Fitur Authentication (Login & Register)
 
-Fitur autentikasi menjadi fondasi utama dalam sistem ini. Saat ini, pengguna sudah dapat melakukan proses registrasi dan login ke dalam aplikasi.
+Pada implementasi fitur authentication, pengguna sudah dapat melakukan proses registrasi dan login ke dalam aplikasi.
 
 Pada proses ini, sistem menggunakan JWT (JSON Web Token) sebagai mekanisme autentikasi. Setelah user berhasil login, sistem akan memberikan token yang digunakan untuk mengakses endpoint tertentu yang bersifat protected.
 
-Selain itu, validasi input juga sudah diterapkan, seperti:
-
-Validasi format email
-Validasi kekuatan password
-Penanganan error ketika data tidak valid
+validasi input telah berhasil diterapkan, seperti:
+- Validasi format email
+- Validasi kekuatan password
+- Penanganan error ketika data tidak valid
 
 Dengan adanya fitur ini, sistem sudah mampu membatasi akses hanya untuk user yang terdaftar.
 
 ## Fitur Dashboard
 
-Setelah pengguna berhasil login, sistem akan menampilkan halaman dashboard sebagai halaman utama aplikasi.
+Setelah pengguna berhasil login, sistem akan menampilkan halaman dashboard sebagai halaman utama aplikasi. Dashboard ini berfungsi sebagai pusat monitoring aktivitas user, dan saat ini sudah memiliki beberapa komponen utama, yaitu:
+- Ringkasan tiket (total tiket, tiket diproses, response time, dan resolved rate)
+- Form input untuk membuat tiket baru
+- Visualisasi data berupa grafik aktivitas tiket
+- Kategori tiket dalam bentuk chart
+- Daftar tiket milik user
+- Aktivitas terbaru (recent activity)
 
-Dashboard ini berfungsi sebagai pusat monitoring aktivitas user, dan saat ini sudah memiliki beberapa komponen utama, yaitu:
-
-Ringkasan tiket (total tiket, tiket diproses, response time, dan resolved rate)
-Form input untuk membuat tiket baru
-Visualisasi data berupa grafik aktivitas tiket
-Kategori tiket dalam bentuk chart
-Daftar tiket milik user
-Aktivitas terbaru (recent activity)
-
-Fitur dashboard ini menunjukkan bahwa sistem sudah mulai masuk ke tahap implementasi fitur utama aplikasi helpdesk.
 
 ## Integrasi Frontend & Backend
 
-Pada tahap ini, frontend dan backend sudah berhasil terintegrasi dengan baik.
-
-Frontend yang dibangun menggunakan React (Vite) telah mampu:
-
-Mengirim request ke backend melalui REST API
-Menerima response dari backend
-Menampilkan data secara dinamis di dashboard
+Pada tahap ini, frontend dan backend sudah berhasil terintegrasi dengan baik. Frontend yang dibangun menggunakan React (Vite) seperti:
+- Mengirim request ke backend melalui REST API
+- Menerima response dari backend
+- Menampilkan data secara dinamis di dashboard
 
 Komunikasi antar service menggunakan format JSON dan berjalan melalui endpoint API yang tersedia di backend.
 
 ## Implementasi Docker (Containerization)
 
-Aplikasi Antick Async telah berhasil dijalankan menggunakan Docker dengan pendekatan multi-container.
+Aplikasi Antick Async telah berhasil dijalankan menggunakan Docker dengan pendekatan multi-container. Terdapat tiga container utama yang digunakan yaitu :
 
-Terdapat tiga container utama yang digunakan:
+- Frontend Container → Menjalankan aplikasi React
+- Backend Container → Menjalankan API berbasis FastAPI
+- Database Container → Menggunakan PostgreSQL sebagai penyimpanan data
 
-Frontend Container → Menjalankan aplikasi React
-Backend Container → Menjalankan API berbasis FastAPI
-Database Container → Menggunakan PostgreSQL sebagai penyimpanan data
-
-Ketiga container ini saling terhubung dalam satu Docker network, sehingga dapat berkomunikasi menggunakan service name (misalnya: backend, db).
-
-Selain itu:
-
-Port telah dikonfigurasi untuk masing-masing service
-Database menggunakan volume (pgdata) untuk menjaga persistensi data
-Environment variables digunakan untuk konfigurasi koneksi dan keamanan
-
-Implementasi ini menunjukkan bahwa aplikasi sudah siap untuk tahap deployment yang lebih lanjut.
+Ketiga container ini saling terhubung dalam satu Docker network, sehingga dapat berkomunikasi menggunakan service nama. Selain ketiga container diatas terdapat beberapa impelntasi docker yang telah berhasil seperti: 
+- Port telah dikonfigurasi untuk masing-masing service
+- Database menggunakan volume (pgdata) untuk menjaga data
+- Environment variables digunakan untuk konfigurasi koneksi dan keamanan
