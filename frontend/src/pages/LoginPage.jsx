@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
+import SplineCardScene from "../components/SplineCardScene";
+import CosmicBackdrop from "../components/CosmicBackdrop";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -11,6 +13,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const onSubmit = async (event) => {
     event.preventDefault();
@@ -29,57 +39,134 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative mx-auto flex min-h-screen w-full max-w-5xl items-center px-4 py-8">
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,#dbeafe_0%,#eff6ff_45%,#f8fafc_100%)]" />
-      <section className="grid w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_26px_70px_-45px_rgba(15,23,42,0.55)] md:grid-cols-[1fr_1.2fr]">
-        <aside className="relative flex min-h-[320px] flex-col justify-between bg-[linear-gradient(160deg,#1e3a8a_0%,#2563eb_55%,#1d4ed8_100%)] p-7 text-white md:min-h-[560px] md:p-10">
-          <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-blue-100/90">Support System</p>
-            <h1 className="mt-4 text-3xl font-semibold leading-tight">TicketFlow</h1>
-            <p className="mt-3 max-w-sm text-sm text-blue-100/95">
-              Platform tiket IT support untuk monitoring issue, assignment teknisi, dan progress penyelesaian.
-            </p>
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[linear-gradient(140deg,#000000_0%,#1184ee_48%,#000000_100%)] px-4 py-8">
+      <CosmicBackdrop />
+
+      <section
+        className={`relative z-10 w-full max-w-[1060px] overflow-hidden rounded-[30px] bg-white shadow-[0_30px_80px_-35px_rgba(2,16,44,0.55)] transition-all duration-500 ease-out md:grid md:grid-cols-[1.08fr_1fr] ${
+          entered
+            ? "translate-y-0 opacity-100"
+            : "translate-y-8 opacity-0"
+        }`}
+      >
+        <aside className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#2592ea_0%,#4aa6f2_52%,#61b1f5_100%)] px-6 pt-6 pb-0 text-white md:min-h-[600px] md:rounded-r-[36px] md:px-8 md:pt-8 md:pb-0">
+          <div className="pointer-events-none absolute -right-8 top-20 h-36 w-36 rounded-full" />
+
+          <div className="relative flex flex-col items-center gap-3">
+            <img src="/image/AA_HD.png" alt="Logo Antick Async" className="h-24" />
+            <p className="mt-3 text-lg text-blue-50/95">"Support That Works on Your Time"</p>
           </div>
-          <p className="text-xs text-blue-100/90">Cloud Team Dashboard Workspace</p>
-          <div className="pointer-events-none absolute -bottom-8 -right-8 h-36 w-36 rounded-full bg-white/15 blur-2xl" />
+
+          <SplineCardScene className="relative mt-6 h-[210px] w-full flex-1 overflow-hidden" />
         </aside>
 
-        <div className="p-6 md:p-10">
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-slate-900">Login</h2>
-            <p className="mt-1 text-sm text-slate-500">Masuk untuk mengelola tiket IT Support.</p>
+        <div className="flex flex-col justify-center bg-white p-6 md:p-10">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-5xl">Log in</h2>
+            <p className="mt-2 text-base text-slate-600 md:text-xl">
+              Welcome back! Choose your preferred sign-in method.
+            </p>
           </div>
 
-          <form className="space-y-4" onSubmit={onSubmit}>
+          <form className="mt-8 space-y-5" onSubmit={onSubmit}>
             <Input
               label="Email"
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="user@student.itk.ac.id"
+              placeholder="Enter your email"
+              className="rounded-xl  border-blue-300 bg-white py-3 text-base"
             />
 
-            <Input
-              label="Password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="********"
-            />
+            <label className="block text-sm text-slate-800">
+              <span className="font-medium">Password</span>
+              <div className="mt-1 flex items-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-300">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your Password"
+                  className="w-full border-none bg-transparent text-base outline-none "
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="ml-2 text-slate-500 transition-colors hover:text-slate-700"
+                >
+                  {showPassword ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="h-5 w-5"
+                    >
+                      <path d="M3 3l18 18" />
+                      <path d="M10.6 10.6A2 2 0 0012 14a2 2 0 001.4-.6" />
+                      <path d="M9.9 4.2A10.5 10.5 0 0112 4c5 0 9.3 3.1 11 7.5a11.7 11.7 0 01-3.2 4.7" />
+                      <path d="M6.6 6.7C4.4 8 2.7 9.9 1 11.5a12.2 12.2 0 003.7 5" />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="h-5 w-5"
+                    >
+                      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </label>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <label className="flex items-center gap-2 text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300"
+                />
+                Remember me for 30 days
+              </label>
+              <button type="button" className="font-medium text-[#2592ea] hover:text-black">
+                Forgot password?
+              </button>
+            </div>
 
             {error && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
 
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Memproses..." : "Login"}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-[#2592ea] py-3 text-lg hover:bg-blue-500"
+            >
+              {loading ? "Processing..." : "Sign In"}
             </Button>
           </form>
 
-          <p className="mt-5 text-sm text-slate-600">
-            Belum punya akun?{" "}
-            <Link to="/register" className="font-medium text-slate-900 underline-offset-4 hover:underline">
-              Register
+          <div className="mt-5 flex items-center gap-3 text-slate-300">
+            <div className="h-px flex-1 bg-slate-300" />
+            <span className="text-sm">or</span>
+            <div className="h-px flex-1 bg-slate-300" />
+          </div>
+
+          <p className="mt-4 text-center text-base text-slate-600 md:text-xl">
+            New here? Create an account{" "}
+            <Link
+              to="/register"
+              state={{ from: "login" }}
+              className="font-semibold text-[#2592ea] underline-offset-4 hover:underline"
+            >
+              Sign up
             </Link>
           </p>
         </div>

@@ -172,7 +172,7 @@ export default function EmployeeDashboardPage() {
                 placeholder="Issue details"
               />
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <label className="text-sm text-slate-700">
                 Priority
                 <select
@@ -227,7 +227,7 @@ export default function EmployeeDashboardPage() {
             <p className="mt-3 text-sm text-slate-500">No tickets yet.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="min-w-[700px] w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500">
                     <th className="py-2">Ticket ID</th>
@@ -245,7 +245,7 @@ export default function EmployeeDashboardPage() {
                       <td className="py-2"><StatusBadge value={ticket.status} /></td>
                       <td className="py-2"><StatusBadge value={ticket.priority} /></td>
                       <td className="py-2">
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Link to={`/employee/tickets/${ticket.id}`}>
                             <Button variant="secondary" size="sm">Detail</Button>
                           </Link>

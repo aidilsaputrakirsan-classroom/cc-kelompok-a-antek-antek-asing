@@ -13,7 +13,9 @@ export default function ProtectedRoute({ allowedRoles }) {
   }
 
   if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to="/" replace />;
+    const adminLike = ["superadmin", "admin", "it_employee"].includes(role);
+    const fallbackPath = adminLike ? "/admin" : role === "employee" ? "/employee" : "/login";
+    return <Navigate to={fallbackPath} replace />;
   }
 
   return <Outlet />;

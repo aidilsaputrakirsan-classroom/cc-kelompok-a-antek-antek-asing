@@ -25,9 +25,9 @@ case $ACTION in
       -v pgdata:/var/lib/postgresql/data \
       postgres:16-alpine
 
-    # Wait for database to be ready (Simulasi wait-for-db.sh)
-    echo "⏳ Waiting for database..."
-    sleep 5
+    # Wait for database to be ready (Menggunakan wait-for-db.sh)
+    chmod +x ./scripts/wait-for-db.sh 2>/dev/null || true
+    bash ./scripts/wait-for-db.sh
 
     # Backend
     echo "🐍 Starting backend..."
@@ -35,7 +35,7 @@ case $ACTION in
       --name backend \
       --network cloudnet \
       -e DATABASE_URL="postgresql://postgres:postgres123@db:5432/cloudapp" \
-      -e ALLOWED_ORIGINS="http://localhost:3000" \
+      -e ALLOWED_ORIGINS="http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173" \
       -p 8000:8000 \
       notyourkisee/cloudapp-backend:v2
 
