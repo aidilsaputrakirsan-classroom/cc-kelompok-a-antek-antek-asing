@@ -132,11 +132,30 @@ def team_info():
 def list_users(skip: int = Query(0, ge=0), limit: int = Query(20, ge=1), db: Session = Depends(get_db)):
     return crud.get_users(db, skip, limit)
 
-@app.put("/users/{user_id}/role", response_model=UserResponse, dependencies=[Depends(allow_admins)])
-def update_user_role(user_id: int, role_update: UserRoleUpdate, db: Session = Depends(get_db)):
-    updated = crud.update_user_role(db, user_id, role_update.role)
-    if not updated:
+@app.put("/users/{user_id}/role", response_model=UserResponse)
+def update_user_role(
+    user_id: int, 
+    role_update: UserRoleUpdate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_admins)
+):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
+
+    # Aturan 1: Superadmin tidak bisa menaikkan user lain menjadi superadmin
+    if current_user.role == UserRole.superadmin:
+        if role_update.role == UserRole.superadmin and target_user.id != current_user.id:
+            raise HTTPException(status_code=403, detail="Superadmin tidak dapat menaikkan user lain menjadi superadmin")
+
+    # Aturan 2: Admin tidak bisa mengubah admin/superadmin, dan tidak bisa menjadikan orang lain admin/superadmin
+    elif current_user.role == UserRole.admin:
+        if target_user.role in [UserRole.superadmin, UserRole.admin] and target_user.id != current_user.id:
+            raise HTTPException(status_code=403, detail="Admin tidak dapat mengubah role dari admin lain atau superadmin")
+        if role_update.role in [UserRole.superadmin, UserRole.admin]:
+            raise HTTPException(status_code=403, detail="Admin tidak dapat memberikan role admin atau superadmin kepada user")
+
+    updated = crud.update_user_role(db, user_id, role_update.role)
     return updated
 
 # === CATEGORIES ===
