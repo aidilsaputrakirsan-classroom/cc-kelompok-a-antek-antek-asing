@@ -29,9 +29,12 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
         return None
     return user
 
-def get_users(db: Session, skip: int = 0, limit: int = 20):
-    total = db.query(User).count()
-    users = db.query(User).order_by(User.created_at.desc()).offset(skip).limit(limit).all()
+def get_users(db: Session, skip: int = 0, limit: int = 20, allowed_roles: Optional[list[UserRole]] = None):
+    query = db.query(User)
+    if allowed_roles:
+        query = query.filter(User.role.in_(allowed_roles))
+    total = query.count()
+    users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
     return {"total": total, "items": users}
 
 def update_user_role(db: Session, user_id: int, new_role: UserRole) -> User | None:
