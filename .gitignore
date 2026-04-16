@@ -2,8 +2,8 @@
 __pycache__/
 *.pyc
 venv/
+.venv/
 .env
-requirements.txt
 
 # Node
 node_modules/
@@ -12,7 +12,9 @@ dist/
 # Docker
 *.log
 
+# Misc
+tmp_*.txt
+
 # IDE
 .vscode/
 .idea/
-EOF
