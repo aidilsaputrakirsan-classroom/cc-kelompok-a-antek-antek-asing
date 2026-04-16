@@ -7,6 +7,7 @@ import Button from "../components/ui/Button";
 import Alert from "../components/ui/Alert";
 import SplineCardScene from "../components/SplineCardScene";
 import CosmicBackdrop from "../components/CosmicBackdrop";
+import ThemeToggle from "../components/ThemeToggle";
 
 const loginSceneUrl = import.meta.env.VITE_SPLINE_SCENE_URL_LOGIN || import.meta.env.VITE_SPLINE_SCENE_URL;
 
@@ -45,11 +46,11 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#eef3f9_100%)] px-4 py-8">
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#eef3f9_100%)] dark:bg-[linear-gradient(180deg,#0f172a_0%,#1e293b_100%)] px-4 py-8 transition-colors duration-300">
       <CosmicBackdrop />
 
       <section
-        className={`relative z-10 w-full max-w-[1060px] overflow-hidden rounded-[30px] bg-white shadow-[0_30px_80px_-35px_rgba(2,16,44,0.55)] transition-all duration-500 ease-out md:grid md:grid-cols-[1.08fr_1fr] ${
+        className={`relative z-10 w-full max-w-[1060px] overflow-hidden rounded-[30px] bg-white dark:bg-slate-900 shadow-[0_30px_80px_-35px_rgba(2,16,44,0.55)] dark:shadow-[0_30px_80px_-35px_rgba(0,0,0,0.8)] transition-all duration-500 ease-out md:grid md:grid-cols-[1.08fr_1fr] ${
           entered
             ? "translate-y-0 opacity-100"
             : "translate-y-8 opacity-0"
@@ -69,12 +70,15 @@ export default function LoginPage() {
           />
         </aside>
 
-        <div className="flex flex-col justify-center bg-white p-6 md:p-10">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-5xl">Log in</h2>
-            <p className="mt-2 text-base text-slate-600 md:text-xl">
-              Welcome back! Choose your preferred sign-in method.
-            </p>
+        <div className="flex flex-col justify-center bg-white dark:bg-slate-900 p-6 md:p-10 transition-colors duration-500">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 md:text-5xl transition-colors duration-500">Log in</h2>
+              <p className="mt-2 text-base text-slate-600 dark:text-slate-400 md:text-xl transition-colors duration-500">
+                Welcome back! Choose your preferred sign-in method.
+              </p>
+            </div>
+            <ThemeToggle />
           </div>
 
           <form className="mt-8 space-y-5" onSubmit={onSubmit}>
@@ -88,22 +92,22 @@ export default function LoginPage() {
               className="rounded-xl  border-blue-300 bg-white py-3 text-base"
             />
 
-            <label className="block text-sm text-slate-800">
+            <label className="block text-sm text-slate-800 dark:text-slate-200 transition-colors duration-500">
               <span className="font-medium">Password</span>
-              <div className="mt-1 flex items-center rounded-xl border border-slate-300 bg-white px-3 py-2.5 focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-300">
+              <div className="mt-1 flex items-center rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2.5 focus-within:border-blue-300 dark:focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-300 dark:focus-within:ring-blue-500 transition-all duration-300">
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your Password"
-                  className="w-full border-none bg-transparent text-base outline-none "
+                  className="w-full border-none bg-transparent text-base text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  className="ml-2 text-slate-500 transition-colors hover:text-slate-700"
+                  className="ml-2 text-slate-500 dark:text-slate-400 transition-colors hover:text-slate-700 dark:hover:text-slate-300"
                 >
                   {showPassword ? (
                     <svg
@@ -136,17 +140,17 @@ export default function LoginPage() {
               </div>
             </label>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-              <label className="flex items-center gap-2 text-slate-600">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm transition-colors duration-500">
+              <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400 transition-colors duration-500">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300"
+                  className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-300"
                 />
                 Remember me for 30 days
               </label>
-              <button type="button" className="font-medium text-[#2592ea] hover:text-black">
+              <button type="button" className="font-medium text-[#2592ea] hover:text-blue-700 dark:hover:text-blue-400 transition-colors duration-300">
                 Forgot password?
               </button>
             </div>
