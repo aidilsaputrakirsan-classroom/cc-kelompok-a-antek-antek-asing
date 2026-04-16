@@ -1,46 +1,78 @@
+# ============================================================
+# Docker Compose — Cloud App (Project: Antick Async)
+# ============================================================
 
 services:
-  # 1. Kontainer Database (PostgreSQL Asli)
+  # ==================== DATABASE ====================
   db:
-    image: postgres:15-alpine
-    container_name: postgres-db
+    image: postgres:16-alpine
+    container_name: antick-async-db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
-      POSTGRES_DB: mydatabase
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: cloudapp
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - cloudnet
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cloudapp"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
-  # 2. Kontainer Backend (Mahakarya Boss Glee)
+  # ==================== BACKEND ====================
   backend:
-    image: notyourkisee/cloudapp-backend:v1
-    container_name: api-backend
-    environment:
-      DATABASE_URL: postgresql://myuser:mypassword@db:5432/mydatabase
-      # Tambahkan baris ini untuk membuka gerbang CORS Frontend:
-      ALLOWED_ORIGINS: "http://localhost:3000"
+    image: notyourkisee/antick-async-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: antick-async-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.docker
     ports:
       - "8000:8000"
+    networks:
+      - cloudnet
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
-  # 3. Kontainer Frontend (Tampilan Web)
+  # ==================== FRONTEND ====================
   frontend:
-    image: notyourkisee/cloudapp-frontend:v1
-    container_name: web-frontend
+    image: notyourkisee/antick-async-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+    container_name: antick-async-frontend
+    restart: unless-stopped
     ports:
       - "3000:80"
+    networks:
+      - cloudnet
     depends_on:
       - backend
 
-# Volume untuk menyimpan data agar tidak hilang saat kontainer mati
+# ==================== VOLUMES ====================
 volumes:
   pgdata:
+    name: cloudapp-pgdata
+
+# ==================== NETWORKS ====================
+networks:
+  cloudnet:
+    name: cloudapp-network
+    driver: bridge
