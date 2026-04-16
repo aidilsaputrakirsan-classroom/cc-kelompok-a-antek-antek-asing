@@ -11,6 +11,13 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  
+  color-scheme: light;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {
@@ -19,6 +26,12 @@ body {
   color: #0f172a;
   min-width: 320px;
   min-height: 100vh;
+  transition: background-color 0.3s ease;
+}
+
+html.dark body {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  color: #f1f5f9;
 }
 
 #root {
@@ -28,11 +41,11 @@ body {
 .cosmic-grid {
   position: absolute;
   inset: 0;
-  opacity: 0.34;
-  background-image: linear-gradient(rgba(203, 236, 255, 0.2) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(203, 236, 255, 0.2) 1px, transparent 1px);
+  opacity: 0.80;
+  background-image: linear-gradient(rgba(37, 146, 234, 0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(37, 146, 234, 0.18) 1px, transparent 1px);
   background-size: 72px 72px;
-  animation: gridDrift 32s linear infinite;
+  animation: none;
 }
 
 .cosmic-grid-sweep {
@@ -40,14 +53,14 @@ body {
   inset: -20%;
   background: linear-gradient(
     112deg,
-    rgba(255, 255, 255, 0) 35%,
-    rgba(178, 238, 255, 0.02) 43%,
-    rgba(178, 238, 255, 0.32) 50%,
-    rgba(178, 238, 255, 0.02) 57%,
+    rgba(231, 229, 229, 0) 35%,
+    rgba(37, 146, 234, 0.03) 43%,
+    rgba(30, 127, 207, 0.3) 50%,
+    rgba(37, 146, 234, 0.03) 57%,
     rgba(255, 255, 255, 0) 65%
   );
   mix-blend-mode: screen;
-  animation: gridSweep 16s ease-in-out infinite;
+  animation: none;
 }
 
 .stars-layer {

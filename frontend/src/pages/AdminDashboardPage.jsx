@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Pencil, Plus, Trash2, User } from "lucide-react";
 import { adminApi, categoryApi, ticketApi } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import Card from "../components/ui/Card";
@@ -58,10 +59,118 @@ function buildSeries(tickets) {
   };
 }
 
+function getAvatarUrl(person) {
+  return (
+    person?.profile_picture ||
+    person?.profilePicture ||
+    person?.avatar_url ||
+    person?.avatarUrl ||
+    ""
+  );
+}
+
+function UserInline({ person, fallback = "-" }) {
+  if (!person) {
+    return <span className="text-slate-500 dark:text-slate-400">{fallback}</span>;
+  }
+
+  const avatarUrl = getAvatarUrl(person);
+  const displayName = person?.name || fallback;
+  const initial = (displayName || "U").charAt(0).toUpperCase();
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt={displayName}
+          className="h-6 w-6 rounded-full border border-slate-200 dark:border-slate-700 object-cover"
+        />
+      ) : (
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
+          {initial}
+        </span>
+      )}
+      <span className="text-slate-700 dark:text-slate-300">{displayName}</span>
+    </span>
+  );
+}
+
+function StatusMark({ status }) {
+  const meta = {
+    open: { icon: CircleDot, style: "bg-slate-100 text-slate-700" },
+    in_progress: { icon: Clock3, style: "bg-amber-100 text-amber-800" },
+    resolved: { icon: CheckCheck, style: "bg-emerald-100 text-emerald-800" },
+    closed: { icon: FolderCheck, style: "bg-zinc-200 text-zinc-700" },
+  };
+
+  const config = meta[status] || meta.open;
+  const Icon = config.icon;
+
+  return (
+    <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${config.style}`}>
+      <Icon size={13} aria-hidden="true" />
+    </span>
+  );
+}
+
+function AssigneeAvatar({ person }) {
+  if (!person) {
+    return (
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-slate-500">
+        <User size={12} aria-hidden="true" />
+      </span>
+    );
+  }
+
+  const avatarUrl = getAvatarUrl(person);
+  const displayName = person?.name || "U";
+  const initial = displayName.charAt(0).toUpperCase();
+
+  if (!avatarUrl) {
+    return (
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-700">
+        {initial}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={avatarUrl}
+      alt={displayName}
+      className="h-6 w-6 rounded-full border border-slate-200 dark:border-slate-700 object-cover"
+    />
+  );
+}
+
+function ThemedSelect({ value, onChange, children, className = "", leftAdornment = null }) {
+  return (
+    <div className="relative">
+      {leftAdornment && (
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">{leftAdornment}</span>
+      )}
+      <select
+        value={value}
+        onChange={onChange}
+        className={`w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 py-2 text-sm text-slate-700 dark:text-slate-100 outline-none transition focus:border-slate-300 dark:focus:border-slate-600 focus:bg-white dark:focus:bg-slate-700 focus:ring-2 focus:ring-slate-200 dark:focus:ring-slate-700 ${leftAdornment ? "pl-11" : "pl-3"} ${className}`}
+      >
+        {children}
+      </select>
+      <ChevronDown
+        size={14}
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+      />
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const queryTab = searchParams.get("tab");
+  const queryFilter = (searchParams.get("q") || "").trim().toLowerCase();
   const [tickets, setTickets] = useState([]);
   const [users, setUsers] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -73,7 +182,12 @@ export default function AdminDashboardPage() {
   );
   const [filters, setFilters] = useState({ search: "", status: "", priority: "", assignee: "" });
   const [categoryForm, setCategoryForm] = useState({ name: "", description: "" });
+  const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [assigneePickerTicket, setAssigneePickerTicket] = useState(null);
+  const [assigneePickerPosition, setAssigneePickerPosition] = useState({ top: 0, left: 0 });
+  const assigneePickerRef = useRef(null);
+  const assigneeTriggerRef = useRef(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -107,6 +221,61 @@ export default function AdminDashboardPage() {
     }
     setActiveTab("overview");
   }, [queryTab]);
+
+  useEffect(() => {
+    if (!assigneePickerTicket) return undefined;
+
+    const handleOutsideClick = (event) => {
+      const isInsidePicker = assigneePickerRef.current?.contains(event.target);
+      const isInsideTrigger = assigneeTriggerRef.current?.contains(event.target);
+
+      if (!isInsidePicker && !isInsideTrigger) {
+        setAssigneePickerTicket(null);
+      }
+    };
+
+    const updatePickerPosition = () => {
+      if (!assigneeTriggerRef.current || !assigneePickerRef.current) return;
+
+      const triggerRect = assigneeTriggerRef.current.getBoundingClientRect();
+      const panelWidth = assigneePickerRef.current.offsetWidth;
+      const panelHeight = assigneePickerRef.current.offsetHeight;
+      const gap = 8;
+      const sidePadding = 10;
+
+      const spaceBelow = window.innerHeight - triggerRect.bottom;
+      const spaceAbove = triggerRect.top;
+      const shouldOpenTop =
+        spaceBelow < panelHeight + gap && spaceAbove > panelHeight + gap;
+
+      let top = shouldOpenTop
+        ? triggerRect.top - panelHeight - gap
+        : triggerRect.bottom + gap;
+      let left = triggerRect.right - panelWidth;
+
+      top = Math.min(
+        Math.max(top, sidePadding),
+        window.innerHeight - panelHeight - sidePadding
+      );
+      left = Math.min(
+        Math.max(left, sidePadding),
+        window.innerWidth - panelWidth - sidePadding
+      );
+
+      setAssigneePickerPosition({ top, left });
+    };
+
+    updatePickerPosition();
+    window.addEventListener("resize", updatePickerPosition);
+    window.addEventListener("scroll", updatePickerPosition, true);
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("resize", updatePickerPosition);
+      window.removeEventListener("scroll", updatePickerPosition, true);
+    };
+  }, [assigneePickerTicket]);
 
   const itEmployees = users.filter((item) => item.role === "it_employee" || item.role === "admin");
 
@@ -160,7 +329,7 @@ export default function AdminDashboardPage() {
       subtitle: "Manage user roles and team access.",
     },
     categories: {
-      title: "Settings",
+      title: "Categories",
       subtitle: "Configure support categories.",
     },
   };
@@ -183,11 +352,16 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const createCategory = async (event) => {
-    event.preventDefault();
+  const createCategory = async () => {
+    if (!categoryForm.name.trim()) {
+      setError("Nama kategori wajib diisi.");
+      return;
+    }
+
     try {
       await categoryApi.create(categoryForm);
       setCategoryForm({ name: "", description: "" });
+      setIsCreateCategoryOpen(false);
       await loadData();
     } catch (err) {
       setError(err.message || "Gagal membuat kategori.");
@@ -208,7 +382,47 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const deleteCategory = async (categoryId) => {
+    const confirmDelete = window.confirm("Hapus kategori ini?");
+    if (!confirmDelete) return;
+
+    try {
+      await categoryApi.remove(categoryId);
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Gagal menghapus kategori.");
+    }
+  };
+
+  const handleAssigneeSelect = async (assigneeId) => {
+    if (!assigneePickerTicket) return;
+
+    const ticketId = assigneePickerTicket.id;
+    setAssigneePickerTicket(null);
+    await updateTicket(ticketId, { assignee_id: assigneeId });
+  };
+
+  const handleAssigneePickerToggle = (ticket, event) => {
+    if (assigneePickerTicket?.id === ticket.id) {
+      setAssigneePickerTicket(null);
+      return;
+    }
+
+    assigneeTriggerRef.current = event.currentTarget;
+
+    // Temporary anchor before measured reposition runs in effect.
+    const triggerRect = event.currentTarget.getBoundingClientRect();
+    setAssigneePickerPosition({ top: triggerRect.bottom + 8, left: triggerRect.right - 320 });
+    setAssigneePickerTicket(ticket);
+  };
+
   const filteredTickets = tickets.filter((ticket) => {
+    const tabQueryMatch =
+      !queryFilter ||
+      ticket.title.toLowerCase().includes(queryFilter) ||
+      ticket.description.toLowerCase().includes(queryFilter) ||
+      String(ticket.id).includes(queryFilter);
+
     const matchSearch =
       !filters.search ||
       ticket.title.toLowerCase().includes(filters.search.toLowerCase()) ||
@@ -216,7 +430,26 @@ export default function AdminDashboardPage() {
     const matchStatus = !filters.status || ticket.status === filters.status;
     const matchPriority = !filters.priority || ticket.priority === filters.priority;
     const matchAssignee = !filters.assignee || String(ticket.assignee_id || "") === filters.assignee;
-    return matchSearch && matchStatus && matchPriority && matchAssignee;
+    return tabQueryMatch && matchSearch && matchStatus && matchPriority && matchAssignee;
+  });
+
+  const filteredUsers = users.filter((item) => {
+    if (!queryFilter) return true;
+
+    return (
+      item.name.toLowerCase().includes(queryFilter) ||
+      item.email.toLowerCase().includes(queryFilter) ||
+      item.role.toLowerCase().includes(queryFilter)
+    );
+  });
+
+  const filteredCategories = categories.filter((item) => {
+    if (!queryFilter) return true;
+
+    return (
+      item.name.toLowerCase().includes(queryFilter) ||
+      (item.description || "").toLowerCase().includes(queryFilter)
+    );
   });
 
   if (loading) {
@@ -225,12 +458,21 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-5">
-      <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{tabMeta[activeTab].title}</h1>
-          <p className="mt-1 text-sm text-slate-500">{tabMeta[activeTab].subtitle}</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">{tabMeta[activeTab].title}</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{tabMeta[activeTab].subtitle}</p>
         </div>
-        <Button className="w-full sm:w-auto" onClick={loadData}>Refresh Dashboard</Button>
+
+        {activeTab === "categories" && (
+          <Button
+            onClick={() => setIsCreateCategoryOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#2592ea] px-4 py-2 text-white hover:bg-blue-500"
+          >
+            <Plus size={16} aria-hidden="true" />
+            Add Category
+          </Button>
+        )}
       </section>
 
       {activeTab === "overview" && (
@@ -258,22 +500,28 @@ export default function AdminDashboardPage() {
               <div className="overflow-x-auto">
                 <table className="min-w-[680px] w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 text-slate-500">
-                      <th className="py-2">Ticket ID</th>
-                      <th className="py-2">Subject</th>
-                      <th className="py-2">Status</th>
-                      <th className="py-2">Assigned To</th>
+                    <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                      <th className="py-3">ID</th>
+                      <th className="py-3">Subject</th>
+                      <th className="py-3">Requester</th>
+                      <th className="py-3">Status</th>
+                      <th className="py-3">Assigned To</th>
                     </tr>
                   </thead>
                   <tbody>
                     {tickets.slice(0, 6).map((ticket) => (
-                      <tr key={ticket.id} className="border-b border-slate-100">
-                        <td className="py-2 text-slate-500">#{ticket.id}</td>
-                        <td className="py-2 font-medium text-slate-800">{ticket.title}</td>
+                      <tr key={ticket.id} className="border-b border-slate-100 dark:border-slate-800 dark:hover:bg-slate-800/40 transition">
+                        <td className="py-2 text-slate-500 dark:text-slate-400">#{ticket.id}</td>
+                        <td className="py-2 font-medium text-slate-800 dark:text-slate-200">{ticket.title}</td>
+                        <td className="py-2">
+                          <UserInline person={ticket.requester} fallback="-" />
+                        </td>
                         <td className="py-2">
                           <StatusBadge value={ticket.status} />
                         </td>
-                        <td className="py-2 text-slate-600">{ticket.assignee?.name || "Unassigned"}</td>
+                        <td className="py-2">
+                          <UserInline person={ticket.assignee} fallback="Unassigned" />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -283,11 +531,11 @@ export default function AdminDashboardPage() {
 
             <Card title="Recent Activities" subtitle="Latest ticket updates.">
               <div className="space-y-3">
-                {recentActivities.length === 0 && <p className="text-sm text-slate-500">No activity data yet.</p>}
+                {recentActivities.length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400">No activity data yet.</p>}
                 {recentActivities.map((ticket) => (
-                  <div key={ticket.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-sm font-medium text-slate-800">#{ticket.id} {ticket.title}</p>
-                    <p className="mt-1 text-xs text-slate-500">Updated: {new Date(ticket.updated_at || ticket.created_at).toLocaleString()}</p>
+                  <div key={ticket.id} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 transition hover:bg-slate-100 dark:hover:bg-slate-700">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-100">#{ticket.id} {ticket.title}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Updated: {new Date(ticket.updated_at || ticket.created_at).toLocaleString()}</p>
                   </div>
                 ))}
               </div>
@@ -296,10 +544,10 @@ export default function AdminDashboardPage() {
         </>
       )}
 
-      {error && <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+      {error && <p className="rounded-lg border border-rose-200 dark:border-rose-900/30 bg-rose-50 dark:bg-rose-900/20 px-3 py-2 text-sm text-rose-700 dark:text-rose-400">{error}</p>}
 
       {activeTab === "tickets" && (
-        <Card title="All Tickets" subtitle="Manage assignee, status, and find ticket quickly.">
+        <Card>
           <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <Input
               label="Search"
@@ -307,97 +555,97 @@ export default function AdminDashboardPage() {
               value={filters.search}
               onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
             />
-            <label className="text-sm text-slate-700">
+            <label className="text-sm text-slate-700 dark:text-slate-300">
               Status
-              <select
+              <ThemedSelect
                 value={filters.status}
                 onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
+                className="mt-1"
               >
                 <option value="">All</option>
                 {statusOptions.map((status) => (
                   <option key={status} value={status}>{status}</option>
                 ))}
-              </select>
+              </ThemedSelect>
             </label>
-            <label className="text-sm text-slate-700">
+            <label className="text-sm text-slate-700 dark:text-slate-300">
               Priority
-              <select
+              <ThemedSelect
                 value={filters.priority}
                 onChange={(e) => setFilters((prev) => ({ ...prev, priority: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
+                className="mt-1"
               >
                 <option value="">All</option>
                 {priorityOptions.map((priority) => (
                   <option key={priority} value={priority}>{priority}</option>
                 ))}
-              </select>
+              </ThemedSelect>
             </label>
-            <label className="text-sm text-slate-700">
+            <label className="text-sm text-slate-700 dark:text-slate-300">
               Assignee
-              <select
+              <ThemedSelect
                 value={filters.assignee}
                 onChange={(e) => setFilters((prev) => ({ ...prev, assignee: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
+                className="mt-1"
               >
                 <option value="">All</option>
                 {itEmployees.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
-              </select>
+              </ThemedSelect>
             </label>
           </div>
 
           {filteredTickets.length === 0 ? (
-            <p className="text-sm text-slate-500">No ticket data matches your filters.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">No ticket data matches your filters.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-[860px] w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-500">
+                  <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
                     <th className="py-2">Title</th>
-                    <th className="py-2">Status</th>
                     <th className="py-2">Priority</th>
+                    <th className="py-2">Status</th>
                     <th className="py-2">Assignee</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredTickets.map((ticket) => (
-                    <tr key={ticket.id} className="border-b border-slate-100 align-top">
+                    <tr key={ticket.id} className="border-b border-slate-100 dark:border-slate-800 dark:hover:bg-slate-800/40 transition align-middle">
                       <td className="py-2 pr-4">
                         <p className="font-medium text-slate-800">{ticket.title}</p>
-                        <p className="text-xs text-slate-500">Requester: {ticket.requester?.name || "-"}</p>
-                      </td>
-                      <td className="py-2 pr-4">
-                        <div className="mb-1"><StatusBadge value={ticket.status} /></div>
-                        <select
-                          value={ticket.status}
-                          onChange={(e) => updateTicket(ticket.id, { status: e.target.value })}
-                          className="rounded-md border border-slate-300 px-2 py-1"
-                        >
-                          {statusOptions.map((status) => (
-                            <option key={status} value={status}>{status}</option>
-                          ))}
-                        </select>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400"></p>
+                        <div className="mt-1 text-xs">
+                          <UserInline person={ticket.requester} fallback="-" />
+                        </div>
                       </td>
                       <td className="py-2 pr-4">
                         <StatusBadge value={ticket.priority} />
                       </td>
-                      <td className="py-2">
-                        <select
-                          value={ticket.assignee_id ?? ""}
-                          onChange={(e) =>
-                            updateTicket(ticket.id, {
-                              assignee_id: e.target.value ? Number(e.target.value) : null,
-                            })
-                          }
-                          className="rounded-md border border-slate-300 px-2 py-1"
+                      <td className="py-2 pr-4">
+                        <ThemedSelect
+                          value={ticket.status}
+                          onChange={(e) => updateTicket(ticket.id, { status: e.target.value })}
+                          className="rounded-lg bg-white py-1.5 pr-8"
+                          leftAdornment={<StatusMark status={ticket.status} />}
                         >
-                          <option value="">Unassigned</option>
-                          {itEmployees.map((item) => (
-                            <option key={item.id} value={item.id}>{item.name}</option>
+                          {statusOptions.map((status) => (
+                            <option key={status} value={status}>{status.replaceAll("_", " ")}</option>
                           ))}
-                        </select>
+                        </ThemedSelect>
+                      </td>
+                      <td className="py-2">
+                        <button
+                          type="button"
+                          onClick={(event) => handleAssigneePickerToggle(ticket, event)}
+                          className="inline-flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-left text-sm text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700"
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <AssigneeAvatar person={ticket.assignee} />
+                            <span>{ticket.assignee?.name || "Unassigned"}</span>
+                          </span>
+                          <ChevronDown size={14} aria-hidden="true" className="text-slate-400" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -409,11 +657,14 @@ export default function AdminDashboardPage() {
       )}
 
       {activeTab === "users" && (
-        <Card title="User Management" subtitle="Change role assignments for the team.">
+        <Card>
+          {filteredUsers.length === 0 && (
+            <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">Tidak ada user yang cocok dengan pencarian.</p>
+          )}
           <div className="overflow-x-auto">
             <table className="min-w-[760px] w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
+                <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
                   <th className="py-2">Name</th>
                   <th className="py-2">Email</th>
                   <th className="py-2">Role</th>
@@ -421,21 +672,23 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((item) => (
-                  <tr key={item.id} className="border-b border-slate-100">
-                    <td className="py-2">{item.name}</td>
-                    <td className="py-2">{item.email}</td>
+                {filteredUsers.map((item) => (
+                  <tr key={item.id} className="border-b border-slate-100 dark:border-slate-800 dark:hover:bg-slate-800/40 transition">
+                    <td className="py-2">
+                      <UserInline person={item} fallback={item.name || "-"} />
+                    </td>
+                    <td className="py-2 text-slate-600 dark:text-slate-400">{item.email}</td>
                     <td className="py-2"><StatusBadge value={item.role} /></td>
                     <td className="py-2">
-                      <select
+                      <ThemedSelect
                         value={item.role}
                         onChange={(e) => updateRole(item.id, e.target.value)}
-                        className="rounded-md border border-slate-300 px-2 py-1"
+                        className="rounded-lg bg-white dark:bg-slate-800 py-1.5 pr-8"
                       >
                         {roleOptions.map((role) => (
                           <option key={role} value={role}>{role}</option>
                         ))}
-                      </select>
+                      </ThemedSelect>
                     </td>
                   </tr>
                 ))}
@@ -446,50 +699,145 @@ export default function AdminDashboardPage() {
       )}
 
       {activeTab === "categories" && (
-        <Card title="Category Management" subtitle="Create and update support categories.">
-          <form onSubmit={createCategory} className="mb-4 grid gap-2 md:grid-cols-[1fr_2fr_auto]">
-            <Input
-              label="Name"
-              required
-              value={categoryForm.name}
-              onChange={(e) => setCategoryForm((prev) => ({ ...prev, name: e.target.value }))}
-            />
-            <Input
-              label="Description"
-              value={categoryForm.description}
-              onChange={(e) => setCategoryForm((prev) => ({ ...prev, description: e.target.value }))}
-            />
-            <div className="self-end">
-              <Button type="submit" className="w-full md:w-auto">Add Category</Button>
-            </div>
-          </form>
-
-          <div className="overflow-x-auto">
-            <table className="min-w-[620px] w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="py-2">Name</th>
-                  <th className="py-2">Description</th>
-                  <th className="py-2">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.map((item) => (
-                  <tr key={item.id} className="border-b border-slate-100">
-                    <td className="py-2">{item.name}</td>
-                    <td className="py-2">{item.description || "-"}</td>
-                    <td className="py-2">
-                      <Button variant="secondary" size="sm" onClick={() => setEditingCategory(item)}>
-                        Edit
-                      </Button>
-                    </td>
+        <>
+          <Card>
+            <div className="overflow-x-auto">
+              {filteredCategories.length === 0 && (
+                <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">Tidak ada kategori yang cocok dengan pencarian.</p>
+              )}
+              <table className="min-w-[620px] w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                    <th className="py-2">Name</th>
+                    <th className="py-2">Description</th>
+                    <th className="py-3 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                </thead>
+                <tbody>
+                  {filteredCategories.map((item) => (
+                    <tr key={item.id} className="border-b border-slate-100 dark:border-slate-800 dark:hover:bg-slate-800/40 transition">
+                      <td className="py-2 text-slate-900 dark:text-slate-100">{item.name}</td>
+                      <td className="py-2 text-slate-600 dark:text-slate-400">{item.description || "-"}</td>
+                      <td className="py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditingCategory(item)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
+                            aria-label="Edit category"
+                            title="Edit category"
+                          >
+                            <Pencil size={14} aria-hidden="true" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteCategory(item.id)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/30 text-rose-600 dark:text-rose-400 transition hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                            aria-label="Delete category"
+                            title="Delete category"
+                          >
+                            <Trash2 size={14} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
       )}
+
+      {assigneePickerTicket && (
+        <div
+          ref={assigneePickerRef}
+          className="fixed z-[80] w-[320px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 shadow-lg dark:shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)]"
+          style={{
+            top: assigneePickerPosition.top,
+            left: assigneePickerPosition.left,
+          }}
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Pilih Assignee
+            </p>
+            <button
+              type="button"
+              onClick={() => setAssigneePickerTicket(null)}
+              className="text-xs text-slate-500 dark:text-slate-400 transition hover:text-slate-700 dark:hover:text-slate-300"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => handleAssigneeSelect(null)}
+              className={`aspect-square rounded-xl border p-2 transition ${
+                !assigneePickerTicket.assignee_id
+                  ? "border-slate-400 dark:border-slate-600 bg-slate-100 dark:bg-slate-900"
+                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
+              }`}
+            >
+              <span className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                  <User size={16} aria-hidden="true" />
+                </span>
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Unassigned</span>
+              </span>
+            </button>
+
+            {itEmployees.map((item) => {
+              const isActive = assigneePickerTicket.assignee_id === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleAssigneeSelect(item.id)}
+                  className={`aspect-square rounded-xl border p-2 transition ${
+                    isActive
+                      ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30"
+                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
+                  }`}
+                  title={item.name}
+                >
+                  <span className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                    <AssigneeAvatar person={item} />
+                    <span className="line-clamp-2 text-xs font-medium text-slate-700 dark:text-slate-300">{item.name}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+        </div>
+      )}
+
+      <Modal
+        open={isCreateCategoryOpen}
+        title="Add Category"
+        onClose={() => setIsCreateCategoryOpen(false)}
+        onConfirm={createCategory}
+        confirmText="Add Category"
+      >
+        <div className="space-y-2">
+          <Input
+            label="Name"
+            required
+            value={categoryForm.name}
+            onChange={(e) => setCategoryForm((prev) => ({ ...prev, name: e.target.value }))}
+          />
+          <Input
+            label="Description"
+            value={categoryForm.description}
+            onChange={(e) => setCategoryForm((prev) => ({ ...prev, description: e.target.value }))}
+          />
+        </div>
+      </Modal>
 
       <Modal
         open={Boolean(editingCategory)}
@@ -519,9 +867,9 @@ export default function AdminDashboardPage() {
 
 function MetricCard({ label, value }) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+    <article className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
+      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">{value}</p>
     </article>
   );
 }

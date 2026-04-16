@@ -8,10 +8,10 @@ export default function Button({
   ...props
 }) {
   const variantStyles = {
-    primary: "bg-slate-900 text-white hover:bg-slate-800",
-    secondary: "border border-slate-300 bg-white text-slate-800 hover:bg-slate-100",
-    danger: "bg-rose-600 text-white hover:bg-rose-500",
-    ghost: "text-slate-700 hover:bg-slate-100",
+    primary: "bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600",
+    secondary: "border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700",
+    danger: "bg-rose-600 dark:bg-rose-700 text-white hover:bg-rose-500 dark:hover:bg-rose-600",
+    ghost: "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800",
   };
 
   const sizeStyles = {

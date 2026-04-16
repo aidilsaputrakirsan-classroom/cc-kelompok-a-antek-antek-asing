@@ -1,10 +1,11 @@
 import { useEffect, useRef } from "react";
 import Spline from "@splinetool/react-spline";
 
-const sceneUrl = import.meta.env.VITE_SPLINE_SCENE_URL;
+const defaultSceneUrl = import.meta.env.VITE_SPLINE_SCENE_URL;
 
-export default function SplineCardScene({ className = "" }) {
+export default function SplineCardScene({ className = "", sceneUrl }) {
   const wrapperRef = useRef(null);
+  const resolvedSceneUrl = sceneUrl || defaultSceneUrl;
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -62,21 +63,21 @@ export default function SplineCardScene({ className = "" }) {
     };
   }, []);
 
-  if (!sceneUrl) {
+  if (!resolvedSceneUrl) {
     return (
       <div
         ref={wrapperRef}
         onWheelCapture={(event) => event.preventDefault()}
         className={`flex h-full w-full items-center justify-center px-4 text-center text-xs font-medium text-blue-100/85 md:text-sm ${className}`}
       >
-        Set VITE_SPLINE_SCENE_URL to show interactive 3D scene.
+        Set scene URL (or VITE_SPLINE_SCENE_URL) to show interactive 3D scene.
       </div>
     );
   }
 
   return (
     <div ref={wrapperRef} onWheelCapture={(event) => event.preventDefault()} className={className}>
-      <Spline scene={sceneUrl} className="h-full w-full" />
+      <Spline scene={resolvedSceneUrl} className="h-full w-full" />
     </div>
   );
 }

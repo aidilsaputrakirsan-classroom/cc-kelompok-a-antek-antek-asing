@@ -1,5 +1,7 @@
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
 import AppShell from "./layouts/AppShell";
@@ -10,6 +12,7 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
 import EmployeeTicketDetailPage from "./pages/EmployeeTicketDetailPage";
 import EmployeeTicketEditPage from "./pages/EmployeeTicketEditPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const router = createBrowserRouter([
   {
@@ -35,6 +38,7 @@ const router = createBrowserRouter([
       {
         element: <AppShell />,
         children: [
+          { path: "/profile", element: <ProfilePage /> },
           {
             path: "/admin",
             element: <ProtectedRoute allowedRoles={["superadmin", "admin", "it_employee"]} />,
@@ -58,8 +62,12 @@ const router = createBrowserRouter([
 
 export default function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <NotificationProvider>
+          <RouterProvider router={router} />
+        </NotificationProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

@@ -150,6 +150,9 @@ export const categoryApi = {
   update(id, payload) {
     return request(`/categories/${id}`, { method: "PUT", body: payload });
   },
+  remove(id) {
+    return request(`/categories/${id}`, { method: "DELETE" });
+  },
 };
 
 export const adminApi = {

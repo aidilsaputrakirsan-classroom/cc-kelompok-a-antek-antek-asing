@@ -157,6 +157,13 @@ def update_category(cat_id: int, category: CategoryUpdate, db: Session = Depends
         raise HTTPException(status_code=404, detail="Kategori tidak ditemukan")
     return updated
 
+@app.delete("/categories/{cat_id}", status_code=204, dependencies=[Depends(allow_admins)])
+def delete_category(cat_id: int, db: Session = Depends(get_db)):
+    deleted = crud.delete_category(db, cat_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Kategori tidak ditemukan")
+    return None
+
 # === TICKETS ===
 @app.post("/tickets", response_model=TicketResponse, status_code=201)
 def create_ticket(ticket: TicketCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

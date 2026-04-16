@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useNotification } from "../hooks/useNotification";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
+import Alert from "../components/ui/Alert";
 import SplineCardScene from "../components/SplineCardScene";
 import CosmicBackdrop from "../components/CosmicBackdrop";
+
+const registerSceneUrl = import.meta.env.VITE_SPLINE_SCENE_URL_REGISTER || import.meta.env.VITE_SPLINE_SCENE_URL;
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { addNotification } = useNotification();
   const [form, setForm] = useState({ email: "", name: "", password: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -35,6 +40,7 @@ export default function RegisterPage() {
     try {
       await register(form);
       setSuccess("Registrasi berhasil, silakan login.");
+      addNotification("Account created successfully! Redirecting to login...", "success", 2000);
       setTimeout(() => navigate("/login", { state: { from: "register" } }), 800);
     } catch (err) {
       setError(err.message || "Registrasi gagal.");
@@ -44,21 +50,24 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[linear-gradient(140deg,#000000_0%,#1184ee_48%,#000000_100%)] px-4 py-8">
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[linear-gradient(180deg,#f8fbff_0%,#eef3f9_100%)] px-4 py-8">
       <CosmicBackdrop />
 
       <section
         className={`relative z-10 w-full max-w-[1060px] overflow-hidden rounded-[30px] bg-white shadow-[0_30px_80px_-35px_rgba(2,16,44,0.55)] transition-all duration-500 ease-out md:grid md:grid-cols-[1.08fr_1fr] ${entered ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}`}
       >
-        <aside className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#2592ea_0%,#4aa6f2_52%,#61b1f5_100%)] px-6 pt-6 pb-0 text-white md:min-h-[600px] md:rounded-r-[36px] md:px-8 md:pt-8 md:pb-0">
+        <aside className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#2592ea_0%,#4aa6f2_52%,#61b1f5_100%)] px-0 pt-0 pb-0 text-white md:min-h-[600px] md:rounded-r-[36px] md:pb-0">
           <div className="pointer-events-none absolute -right-8 top-20 h-36 w-36 rounded-full" />
 
-          <div className="relative flex flex-col items-center gap-3">
+          <div className="relative flex flex-col items-center gap-3 px-6 pt-6 md:px-8 md:pt-8">
             <img src="/image/AA_HD.png" alt="Logo Antick Async" className="h-24" />
             <p className="mt-3 text-lg text-blue-50/95">"Support That Works on Your Time"</p>
           </div>
 
-          <SplineCardScene className="relative mt-6 h-[210px] w-full flex-1 overflow-hidden" />
+          <SplineCardScene
+            className="relative mt-0 h-[210px] w-full flex-1 overflow-hidden"
+            sceneUrl={registerSceneUrl}
+          />
         </aside>
 
         <div className="flex flex-col justify-center bg-white p-6 md:p-10">
@@ -142,8 +151,24 @@ export default function RegisterPage() {
               </div>
             </label>
 
-            {error && <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
-            {success && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</p>}
+            {error && (
+              <Alert 
+                message={error} 
+                type="error" 
+                onClose={() => setError("")}
+                autoClose={true}
+                duration={4000}
+              />
+            )}
+            {success && (
+              <Alert 
+                message={success} 
+                type="success" 
+                onClose={() => setSuccess("")}
+                autoClose={true}
+                duration={3000}
+              />
+            )}
 
             <Button
               type="submit"

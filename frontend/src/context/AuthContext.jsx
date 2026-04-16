@@ -66,6 +66,13 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateLocalProfile = (payload) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      return { ...prev, ...payload };
+    });
+  };
+
   useEffect(() => {
     let isActive = true;
 
@@ -109,6 +116,7 @@ export function AuthProvider({ children }) {
       login,
       register,
       logout,
+      updateLocalProfile,
     }),
     [user, isBootstrapping]
   );
