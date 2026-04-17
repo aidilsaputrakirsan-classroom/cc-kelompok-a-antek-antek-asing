@@ -7,11 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import engine, get_db, SessionLocal
-from models import Base, User, UserRole, UserStatus
+from models import Base, User, UserRole, UserStatus, UserDepartment, Department
 from schemas import (
     UserCreate, UserResponse, RegisterResponse, LoginRequest, TokenResponse,
     UserRoleUpdate, UserDepartmentUpdate,
     ApproveUserRequest, RejectUserRequest, ApprovalLogResponse,
+    DepartmentResponse, DepartmentCreate, DepartmentUpdate,
     CategoryCreate, CategoryUpdate, CategoryResponse,
     TicketCreate, TicketUpdateEmployee, TicketUpdateAdmin, TicketResponse, TicketListResponse
 )
@@ -45,7 +46,24 @@ async def lifespan(app: FastAPI):
             db.add(sa)
             db.commit()
 
-        # 2. Categories
+        # 2. Default Departments (5 departments)
+        from models import Department
+        default_departments = [
+            {"name": "IT", "description": "Information Technology - System & Network Support"},
+            {"name": "Finance", "description": "Finance & Accounting"},
+            {"name": "HR", "description": "Human Resources"},
+            {"name": "Operations", "description": "Operations & Logistics"},
+            {"name": "Sales", "description": "Sales & Marketing"}
+        ]
+        
+        for dept in default_departments:
+            existing_dept = db.query(Department).filter(Department.name == dept["name"]).first()
+            if not existing_dept:
+                new_dept = Department(name=dept["name"], description=dept["description"])
+                db.add(new_dept)
+        db.commit()
+
+        # 3. Categories
         from models import Category
         default_categories = [
             {"name": "Hardware", "description": "Isu terkait perangkat keras (Laptop, Mouse, Monitor)"},
@@ -162,10 +180,20 @@ def list_users(
     current_user: User = Depends(get_current_user)
 ):
     if current_user.role == UserRole.superadmin:
-        return crud.get_users(db, skip, limit)
+        result = crud.get_users(db, skip, limit)
     else:
         # Admin / IT Employee hanya bisa melihat role employee dan it_employee di manajemen user
-        return crud.get_users(db, skip, limit, allowed_roles=[UserRole.employee, UserRole.it_employee])
+        result = crud.get_users(db, skip, limit, allowed_roles=[UserRole.employee, UserRole.it_employee])
+    
+    # Convert each user ORM object to UserResponse schema and dump to dict
+    items = []
+    for user in result["items"]:
+        user_response = UserResponse.model_validate(user)
+        # Exclude unwanted fields from the response
+        user_dict = user_response.model_dump(exclude={"department_rel", "hashed_password", "approver", "tickets_requested", "tickets_assigned"})
+        items.append(user_dict)
+    
+    return {"total": result["total"], "items": items}
 
 @app.put("/users/{user_id}/role", response_model=UserResponse)
 def update_user_role(
@@ -216,7 +244,16 @@ def list_pending_users(
     db: Session = Depends(get_db)
 ):
     """Admin/Superadmin: melihat daftar user dengan status PENDING"""
-    return crud.get_pending_users(db, skip, limit)
+    result = crud.get_pending_users(db, skip, limit)
+    
+    # Convert to UserResponse schema with proper serialization and exclude unwanted fields
+    items = []
+    for user in result["items"]:
+        user_response = UserResponse.model_validate(user)
+        user_dict = user_response.model_dump(exclude={"department_rel", "hashed_password", "approver", "tickets_requested", "tickets_assigned"})
+        items.append(user_dict)
+    
+    return {"total": result["total"], "items": items}
 
 @app.post("/admin/approve-user/{user_id}", response_model=UserResponse)
 def approve_user(
@@ -255,6 +292,69 @@ def reject_user(
     if not result:
         raise HTTPException(status_code=400, detail="Gagal me-reject user")
     return result
+
+@app.put("/admin/users/{user_id}/department", response_model=UserResponse)
+def update_user_department(
+    user_id: int,
+    data: UserDepartmentUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_admins)
+):
+    """Admin/Superadmin: update user department assignment"""
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    
+    if data.department_id is not None:
+        # Verify department exists
+        dept = db.query(Department).filter(Department.id == data.department_id).first()
+        if not dept:
+            raise HTTPException(status_code=404, detail="Department tidak ditemukan")
+    
+    updated = crud.update_user_department(db, user_id, data.department_id)
+    return updated
+
+@app.post("/admin/departments", response_model=DepartmentResponse, status_code=201)
+def create_department_endpoint(
+    dept_data: DepartmentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_admins)
+):
+    """Admin/Superadmin: create new department"""
+    new_dept = crud.create_department(db, dept_data)
+    return new_dept
+
+@app.get("/admin/departments", response_model=list[DepartmentResponse], dependencies=[Depends(allow_it_and_admins)])
+def list_departments(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Admin/Superadmin/IT Employee: list all departments"""
+    return crud.get_departments(db)
+
+@app.put("/admin/departments/{dept_id}", response_model=DepartmentResponse)
+def update_department_endpoint(
+    dept_id: int,
+    dept_data: DepartmentUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_admins)
+):
+    """Admin/Superadmin: update department"""
+    updated = crud.update_department(db, dept_id, dept_data)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Department tidak ditemukan")
+    return updated
+
+@app.delete("/admin/departments/{dept_id}", status_code=204)
+def delete_department_endpoint(
+    dept_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_admins)
+):
+    """Admin/Superadmin: delete department"""
+    success = crud.delete_department(db, dept_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Department tidak ditemukan")
 
 @app.get("/admin/approval-logs")
 def get_approval_logs(

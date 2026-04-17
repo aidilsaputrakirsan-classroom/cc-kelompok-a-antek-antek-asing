@@ -39,10 +39,11 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(form);
-      setSuccess("Registrasi berhasil, silakan login.");
-      addNotification("Account created successfully! Redirecting to login...", "success", 2000);
-      setTimeout(() => navigate("/login", { state: { from: "register" } }), 800);
+      const response = await register(form);
+      const message = response.message || "Registrasi berhasil. Akun Anda menunggu persetujuan admin.";
+      setSuccess(message);
+      addNotification(message, "success", 3000);
+      setTimeout(() => navigate("/login", { state: { from: "register", message } }), 1500);
     } catch (err) {
       setError(err.message || "Registrasi gagal.");
     } finally {

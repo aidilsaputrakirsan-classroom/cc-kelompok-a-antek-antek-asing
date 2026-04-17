@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import Optional
-from models import User, Category, Ticket, UserRole, UserStatus, UserDepartment, TicketStatus, ApprovalLog
+from models import User, Category, Ticket, UserRole, UserStatus, UserDepartment, TicketStatus, ApprovalLog, Department
 from schemas import (
     UserCreate, CategoryCreate, CategoryUpdate, TicketCreate,
     TicketUpdateEmployee, TicketUpdateAdmin, ApproveUserRequest, RejectUserRequest
@@ -36,11 +36,14 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
     return user
 
 def get_users(db: Session, skip: int = 0, limit: int = 20, allowed_roles: Optional[list[UserRole]] = None):
-    query = db.query(User)
+    query = db.query(User).options(joinedload(User.department_rel))
+    # Only show ACTIVE users in Team Member list
+    query = query.filter(User.status == UserStatus.active)
     if allowed_roles:
         query = query.filter(User.role.in_(allowed_roles))
     total = query.count()
     users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
+    
     return {"total": total, "items": users}
 
 def update_user_role(db: Session, user_id: int, new_role: UserRole) -> User | None:
@@ -52,11 +55,11 @@ def update_user_role(db: Session, user_id: int, new_role: UserRole) -> User | No
     db.refresh(db_user)
     return db_user
 
-def update_user_department(db: Session, user_id: int, new_department: UserDepartment) -> User | None:
+def update_user_department(db: Session, user_id: int, department_id: int) -> User | None:
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
         return None
-    db_user.department = new_department
+    db_user.department_id = department_id
     db.commit()
     db.refresh(db_user)
     return db_user
@@ -64,9 +67,10 @@ def update_user_department(db: Session, user_id: int, new_department: UserDepart
 
 # --- APPROVAL WORKFLOW ---
 def get_pending_users(db: Session, skip: int = 0, limit: int = 20):
-    query = db.query(User).filter(User.status == UserStatus.pending)
+    query = db.query(User).options(joinedload(User.department_rel)).filter(User.status == UserStatus.pending)
     total = query.count()
     users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
+    
     return {"total": total, "items": users}
 
 
@@ -80,7 +84,7 @@ def approve_user(db: Session, user_id: int, data: ApproveUserRequest, admin_id: 
     now = datetime.now(timezone.utc)
     db_user.status = UserStatus.active
     db_user.is_active = True
-    db_user.department = data.department
+    db_user.department_id = data.department_id
     db_user.approved_by = admin_id
     db_user.approved_at = now
 
@@ -88,7 +92,7 @@ def approve_user(db: Session, user_id: int, data: ApproveUserRequest, admin_id: 
     log = ApprovalLog(
         user_id=user_id,
         action="APPROVED",
-        department_assigned=data.department,
+        department_assigned=None,
         performed_by=admin_id,
         performed_at=now,
     )
@@ -158,6 +162,36 @@ def delete_category(db: Session, cat_id: int) -> bool:
     if not db_cat:
         return False
     db.delete(db_cat)
+    db.commit()
+    return True
+
+# --- DEPARTMENT ---
+def create_department(db: Session, dept_data) -> Department:
+    db_dept = Department(**dept_data.model_dump())
+    db.add(db_dept)
+    db.commit()
+    db.refresh(db_dept)
+    return db_dept
+
+def get_departments(db: Session):
+    return db.query(Department).order_by(Department.name.asc()).all()
+
+def update_department(db: Session, dept_id: int, dept_data) -> Department | None:
+    db_dept = db.query(Department).filter(Department.id == dept_id).first()
+    if not db_dept:
+        return None
+    update_data = dept_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_dept, field, value)
+    db.commit()
+    db.refresh(db_dept)
+    return db_dept
+
+def delete_department(db: Session, dept_id: int) -> bool:
+    db_dept = db.query(Department).filter(Department.id == dept_id).first()
+    if not db_dept:
+        return False
+    db.delete(db_dept)
     db.commit()
     return True
 

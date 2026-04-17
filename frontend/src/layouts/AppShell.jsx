@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, Tags, Ticket, User, Users } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, Tags, Ticket, User, Users, Clock, Building2 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import NotificationCenter from "../components/NotificationCenter";
 import ThemeToggle from "../components/ThemeToggle";
@@ -73,8 +73,10 @@ export default function AppShell() {
     if (user?.role === "superadmin" || user?.role === "admin") {
       return [
         { to: "/admin", label: "Overview", tab: "overview", icon: LayoutDashboard },
+        { to: "/admin/pending-users", label: "Pending Users", tab: "pending-users", icon: Clock },
         { to: "/admin?tab=tickets", label: "All Tickets", tab: "tickets", icon: Ticket },
         { to: "/admin?tab=users", label: "Team Member", tab: "users", icon: Users },
+        { to: "/admin?tab=departments", label: "Departments", tab: "departments", icon: Building2 },
         { to: "/admin?tab=categories", label: "Categories", tab: "categories", icon: Tags },
       ];
     }
@@ -99,6 +101,10 @@ export default function AppShell() {
   }, [isAdminLike, user?.role]);
 
   const breadcrumbItems = useMemo(() => {
+    if (location.pathname === "/admin/pending-users") {
+      return ["Dashboard", "Pending Users"];
+    }
+
     if (location.pathname.startsWith("/admin")) {
       const tabLabelMap = {
         overview: "Overview",
@@ -195,21 +201,40 @@ export default function AppShell() {
             </div>
 
             <nav className="space-y-2">
-              {navItems.map((item) => (
-                <SidebarLink
-                  key={item.to}
-                  to={item.to}
-                  label={item.label}
-                  icon={item.icon}
-                  collapsed={sidebarCollapsed}
-                  onClick={() => setMobileOpen(false)}
-                  isActive={
-                    item.to.startsWith("/admin")
-                      ? location.pathname.startsWith("/admin") && currentTab === item.tab
-                      : location.pathname.startsWith("/employee") && (item.tab ? currentTab === item.tab : true)
+              {navItems.map((item) => {
+                const getIsActive = () => {
+                  // Exact match untuk pending-users
+                  if (item.to === "/admin/pending-users") {
+                    return location.pathname === "/admin/pending-users";
                   }
-                />
-              ))}
+
+                  // Overview dengan tab check
+                  if (item.to === "/admin") {
+                    return location.pathname === "/admin" && currentTab === "overview";
+                  }
+
+                  // Query string based items (All Tickets, Team Member, Categories)
+                  if (item.to.includes("?tab=")) {
+                    const expectedTab = new URLSearchParams(item.to.split("?")[1]).get("tab");
+                    return location.pathname === "/admin" && currentTab === expectedTab;
+                  }
+
+                  // Employee routes
+                  return location.pathname.startsWith("/employee") && (item.tab ? currentTab === item.tab : true);
+                };
+
+                return (
+                  <SidebarLink
+                    key={item.to}
+                    to={item.to}
+                    label={item.label}
+                    icon={item.icon}
+                    collapsed={sidebarCollapsed}
+                    onClick={() => setMobileOpen(false)}
+                    isActive={getIsActive()}
+                  />
+                );
+              })}
             </nav>
           </div>
         </aside>

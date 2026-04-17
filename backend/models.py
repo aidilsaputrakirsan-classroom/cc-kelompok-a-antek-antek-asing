@@ -41,6 +41,15 @@ class TicketPriority(str, enum.Enum):
     high = "high"
     urgent = "urgent"
 
+class Department(Base):
+    __tablename__ = "departments"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String(100), unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    users = relationship("User", back_populates="department_rel")
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -48,7 +57,7 @@ class User(Base):
     name = Column(String(100), nullable=False)
     hashed_password = Column(String(255), nullable=False)
     role = Column(SQLEnum(UserRole), default=UserRole.employee, nullable=False)
-    department = Column(SQLEnum(UserDepartment), nullable=True, default=None)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
     status = Column(SQLEnum(UserStatus), default=UserStatus.pending, nullable=False)
     is_active = Column(Boolean, default=False)
     approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -57,8 +66,14 @@ class User(Base):
     
     # relationships
     approver = relationship("User", remote_side="User.id", foreign_keys=[approved_by])
+    department_rel = relationship("Department", back_populates="users")
     tickets_requested = relationship("Ticket", foreign_keys="[Ticket.requester_id]", back_populates="requester")
     tickets_assigned = relationship("Ticket", foreign_keys="[Ticket.assignee_id]", back_populates="assignee")
+    
+    @property
+    def department(self):
+        """Return department name from relationship"""
+        return self.department_rel.name if self.department_rel else None
 
 class Category(Base):
     __tablename__ = "categories"

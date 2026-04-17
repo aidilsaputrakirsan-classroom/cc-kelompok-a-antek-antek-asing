@@ -117,9 +117,16 @@ export default function ProfilePage() {
             )}
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{profileForm.name || user?.name || "User"}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">{profileForm.email || user?.email || "-"}</p>
-            <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs text-slate-600 dark:text-slate-400">
-              <UserCircle size={13} aria-hidden="true" />
-              Role: {user?.role || "-"}
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs text-slate-600 dark:text-slate-400">
+                <UserCircle size={13} aria-hidden="true" />
+                Role: {user?.role || "-"}
+              </div>
+              {user?.department && (
+                <div className="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-1 text-xs text-blue-700 dark:text-blue-400 font-medium">
+                  Department: {user.department}
+                </div>
+              )}
             </div>
           </div>
         </Card>

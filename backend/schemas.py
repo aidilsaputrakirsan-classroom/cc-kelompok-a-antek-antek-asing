@@ -1,8 +1,25 @@
 import re
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 from models import UserRole, UserStatus, TicketStatus, TicketPriority, UserDepartment
+
+# --- Department ---
+class DepartmentResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class DepartmentCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+
+class DepartmentUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
 
 # --- User ---
 class UserCreate(BaseModel):
@@ -27,18 +44,19 @@ class UserCreate(BaseModel):
         return value
 
 class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: int
     email: str
     name: str
     role: UserRole
-    department: Optional[UserDepartment] = None
+    department_id: Optional[int] = None
+    department: Optional[str] = None  # Department name (manually set from relationship in CRUD)
     status: UserStatus
     is_active: bool
     approved_by: Optional[int] = None
     approved_at: Optional[datetime] = None
     created_at: datetime
-    class Config:
-        from_attributes = True
 
 class RegisterResponse(BaseModel):
     user: UserResponse
@@ -48,10 +66,10 @@ class UserRoleUpdate(BaseModel):
     role: UserRole
 
 class UserDepartmentUpdate(BaseModel):
-    department: UserDepartment
+    department_id: Optional[int] = None
 
 class ApproveUserRequest(BaseModel):
-    department: UserDepartment
+    department_id: int
 
 class RejectUserRequest(BaseModel):
     notes: Optional[str] = Field(None, max_length=500, examples=["Data tidak valid"])

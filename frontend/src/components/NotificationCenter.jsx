@@ -120,6 +120,21 @@ export default function NotificationCenter() {
 
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-slate-700 dark:text-slate-300">{notification.message}</p>
+                      
+                      {/* Action Button */}
+                      {notification.action && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            notification.action.onClick();
+                            removeNotification(notification.id);
+                          }}
+                          className="mt-2 text-xs font-medium px-2.5 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+                        >
+                          {notification.action.label}
+                        </button>
+                      )}
+                      
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         {formatTime(notification.timestamp)}
                       </p>

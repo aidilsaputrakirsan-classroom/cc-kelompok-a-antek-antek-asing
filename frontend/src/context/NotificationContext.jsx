@@ -6,13 +6,14 @@ export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
 
   const addNotification = useCallback(
-    (message, type = "info", duration = 5000) => {
+    (message, type = "info", duration = 5000, action = null) => {
       const id = Date.now();
       const notification = {
         id,
         message,
         type, // 'info', 'success', 'error', 'warning'
         timestamp: new Date(),
+        action, // { label: string, onClick: function }
       };
 
       setNotifications((prev) => [notification, ...prev]);

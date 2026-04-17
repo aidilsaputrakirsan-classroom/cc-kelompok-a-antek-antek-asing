@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Pencil, Plus, Trash2, User } from "lucide-react";
+import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Pencil, Plus, Trash2, User, Eye } from "lucide-react";
 import { adminApi, categoryApi, ticketApi } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import Card from "../components/ui/Card";
@@ -14,7 +14,7 @@ import { ActivityLineChart, CategoryDonutChart } from "../components/dashboard/C
 const statusOptions = ["open", "in_progress", "resolved", "closed"];
 const roleOptions = ["employee", "it_employee", "admin", "superadmin"];
 const priorityOptions = ["low", "medium", "high", "urgent"];
-const validTabs = ["overview", "tickets", "users", "categories"];
+const validTabs = ["overview", "tickets", "users", "categories", "departments"];
 
 function monthLabel(date) {
   return new Date(date).toLocaleDateString("en-US", { month: "short" });
@@ -91,7 +91,14 @@ function UserInline({ person, fallback = "-" }) {
           {initial}
         </span>
       )}
-      <span className="text-slate-700 dark:text-slate-300">{displayName}</span>
+      <div className="flex flex-row items-center gap-2">
+        <span className="text-slate-700 dark:text-slate-300">{displayName}</span>
+        {person?.department && (
+          <span className="inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium w-fit">
+            {person.department}
+          </span>
+        )}
+      </div>
     </span>
   );
 }
@@ -174,6 +181,7 @@ export default function AdminDashboardPage() {
   const [tickets, setTickets] = useState([]);
   const [users, setUsers] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -184,7 +192,13 @@ export default function AdminDashboardPage() {
   const [categoryForm, setCategoryForm] = useState({ name: "", description: "" });
   const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [departmentForm, setDepartmentForm] = useState({ name: "", description: "" });
+  const [isCreateDepartmentOpen, setIsCreateDepartmentOpen] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState(null);
   const [assigneePickerTicket, setAssigneePickerTicket] = useState(null);
+  const [editingUserDepartment, setEditingUserDepartment] = useState(null);
+  const [departmentEditMode, setDepartmentEditMode] = useState(null);
+  const [selectedTicket, setSelectedTicket] = useState(null);
   const [assigneePickerPosition, setAssigneePickerPosition] = useState({ top: 0, left: 0 });
   const assigneePickerRef = useRef(null);
   const assigneeTriggerRef = useRef(null);
@@ -193,16 +207,18 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setError("");
     try {
-      const [ticketData, userData, dashboardData, categoryData] = await Promise.all([
+      const [ticketData, userData, dashboardData, categoryData, departmentData] = await Promise.all([
         ticketApi.list({ limit: 100 }),
         adminApi.listUsers({ limit: 100 }),
         adminApi.dashboard(),
         categoryApi.list(),
+        adminApi.getDepartments(),
       ]);
       setTickets(ticketData.items || []);
       setUsers(userData.items || []);
       setDashboard(dashboardData);
       setCategories(categoryData || []);
+      setDepartments(Array.isArray(departmentData) ? departmentData : (departmentData.items || []));
     } catch (err) {
       setError(err.message || "Gagal memuat dashboard admin.");
     } finally {
@@ -326,11 +342,15 @@ export default function AdminDashboardPage() {
     },
     users: {
       title: "Team Member",
-      subtitle: "Manage user roles and team access.",
+      subtitle: "Manage user roles, departments and team access.",
     },
     categories: {
       title: "Categories",
       subtitle: "Configure support categories.",
+    },
+    departments: {
+      title: "Departments",
+      subtitle: "View all available departments in the system.",
     },
   };
 
@@ -349,6 +369,17 @@ export default function AdminDashboardPage() {
       await loadData();
     } catch (err) {
       setError(err.message || "Gagal mengubah role user.");
+    }
+  };
+
+  const updateUserDepartment = async (userId, department) => {
+    try {
+      await adminApi.updateUserDepartment(userId, department);
+      await loadData();
+      setEditingUserDepartment(null);
+      setDepartmentEditMode(null);
+    } catch (err) {
+      setError(err.message || "Gagal mengubah departemen user.");
     }
   };
 
@@ -391,6 +422,49 @@ export default function AdminDashboardPage() {
       await loadData();
     } catch (err) {
       setError(err.message || "Gagal menghapus kategori.");
+    }
+  };
+
+  const createDepartment = async () => {
+    if (!departmentForm.name.trim()) {
+      setError("Nama departemen tidak boleh kosong.");
+      return;
+    }
+
+    try {
+      await adminApi.createDepartment(departmentForm);
+      setDepartmentForm({ name: "", description: "" });
+      setIsCreateDepartmentOpen(false);
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Gagal membuat departemen.");
+    }
+  };
+
+  const updateDepartment = async () => {
+    if (!editingDepartment) return;
+
+    try {
+      await adminApi.updateDepartment(editingDepartment.id, {
+        name: editingDepartment.name,
+        description: editingDepartment.description,
+      });
+      setEditingDepartment(null);
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Gagal mengubah departemen.");
+    }
+  };
+
+  const deleteDepartment = async (deptId) => {
+    const confirmDelete = window.confirm("Hapus departemen ini?");
+    if (!confirmDelete) return;
+
+    try {
+      await adminApi.deleteDepartment(deptId);
+      await loadData();
+    } catch (err) {
+      setError(err.message || "Gagal menghapus departemen.");
     }
   };
 
@@ -471,6 +545,16 @@ export default function AdminDashboardPage() {
           >
             <Plus size={16} aria-hidden="true" />
             Add Category
+          </Button>
+        )}
+
+        {activeTab === "departments" && (
+          <Button
+            onClick={() => setIsCreateDepartmentOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#2592ea] px-4 py-2 text-white hover:bg-blue-500"
+          >
+            <Plus size={16} aria-hidden="true" />
+            Add Department
           </Button>
         )}
       </section>
@@ -607,6 +691,7 @@ export default function AdminDashboardPage() {
                     <th className="py-2">Priority</th>
                     <th className="py-2">Status</th>
                     <th className="py-2">Assignee</th>
+                    <th className="py-2">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -647,6 +732,17 @@ export default function AdminDashboardPage() {
                           <ChevronDown size={14} aria-hidden="true" className="text-slate-400" />
                         </button>
                       </td>
+                      <td className="py-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTicket(ticket)}
+                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
+                          title="View details"
+                        >
+                          <Eye size={16} aria-hidden="true" />
+                          Detail
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -662,12 +758,13 @@ export default function AdminDashboardPage() {
             <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">Tidak ada user yang cocok dengan pencarian.</p>
           )}
           <div className="overflow-x-auto">
-            <table className="min-w-[760px] w-full text-left text-sm">
+            <table className="min-w-[900px] w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
                   <th className="py-2">Name</th>
                   <th className="py-2">Email</th>
                   <th className="py-2">Role</th>
+                  <th className="py-2">Department</th>
                   <th className="py-2">Action</th>
                 </tr>
               </thead>
@@ -678,17 +775,83 @@ export default function AdminDashboardPage() {
                       <UserInline person={item} fallback={item.name || "-"} />
                     </td>
                     <td className="py-2 text-slate-600 dark:text-slate-400">{item.email}</td>
-                    <td className="py-2"><StatusBadge value={item.role} /></td>
                     <td className="py-2">
-                      <ThemedSelect
-                        value={item.role}
-                        onChange={(e) => updateRole(item.id, e.target.value)}
-                        className="rounded-lg bg-white dark:bg-slate-800 py-1.5 pr-8"
-                      >
-                        {roleOptions.map((role) => (
-                          <option key={role} value={role}>{role}</option>
-                        ))}
-                      </ThemedSelect>
+                      {editingUserDepartment === item.id ? (
+                        <ThemedSelect
+                          value={item.role}
+                          onChange={(e) => setDepartmentEditMode((prev) => ({ ...prev, role: e.target.value }))}
+                          className="rounded-lg bg-white dark:bg-slate-800 py-1.5 pr-8 text-xs"
+                        >
+                          {roleOptions.map((role) => (
+                            <option key={role} value={role}>{role}</option>
+                          ))}
+                        </ThemedSelect>
+                      ) : (
+                        <StatusBadge value={item.role} />
+                      )}
+                    </td>
+                    <td className="py-2">
+                      {editingUserDepartment === item.id ? (
+                        <ThemedSelect
+                          value={departmentEditMode?.department || item.department_id || ""}
+                          onChange={(e) => setDepartmentEditMode((prev) => ({ ...prev, department: e.target.value }))}
+                          className="rounded-lg bg-white dark:bg-slate-800 py-1.5 pr-8 text-xs"
+                        >
+                          <option value="">Select Department</option>
+                          {departments.map((dept) => (
+                            <option key={dept.id} value={dept.id}>{dept.name}</option>
+                          ))}
+                        </ThemedSelect>
+                      ) : (
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {item.department || "-"}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        {editingUserDepartment === item.id ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (departmentEditMode?.role && departmentEditMode.role !== item.role) {
+                                  updateRole(item.id, departmentEditMode.role);
+                                }
+                                if (departmentEditMode?.department && departmentEditMode.department !== item.department_id) {
+                                  updateUserDepartment(item.id, parseInt(departmentEditMode.department));
+                                }
+                                setEditingUserDepartment(null);
+                                setDepartmentEditMode(null);
+                              }}
+                              className="inline-flex items-center justify-center rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 px-2 py-1.5 text-xs font-medium text-green-700 dark:text-green-400 transition hover:bg-green-100 dark:hover:bg-green-900/40"
+                            >
+                              <CheckCheck size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingUserDepartment(null);
+                                setDepartmentEditMode(null);
+                              }}
+                              className="inline-flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-600 dark:text-slate-400 transition hover:bg-slate-50 dark:hover:bg-slate-700"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingUserDepartment(item.id);
+                              setDepartmentEditMode({ role: item.role, department: item.department_id });
+                            }}
+                            className="inline-flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-600 dark:text-slate-400 transition hover:bg-slate-50 dark:hover:bg-slate-700"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -736,6 +899,58 @@ export default function AdminDashboardPage() {
                             className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/30 text-rose-600 dark:text-rose-400 transition hover:bg-rose-50 dark:hover:bg-rose-900/20"
                             aria-label="Delete category"
                             title="Delete category"
+                          >
+                            <Trash2 size={14} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
+
+      {activeTab === "departments" && (
+        <>
+          <Card>
+            <div className="overflow-x-auto">
+              {departments.length === 0 && (
+                <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">Tidak ada departemen yang tersedia.</p>
+              )}
+              <table className="min-w-[620px] w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                    <th className="py-2">Name</th>
+                    <th className="py-2">Description</th>
+                    <th className="py-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {departments.map((item) => (
+                    <tr key={item.id} className="border-b border-slate-100 dark:border-slate-800 dark:hover:bg-slate-800/40 transition">
+                      <td className="py-2 text-slate-900 dark:text-slate-100">{item.name}</td>
+                      <td className="py-2 text-slate-600 dark:text-slate-400">{item.description || "-"}</td>
+                      <td className="py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditingDepartment(item)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 transition hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
+                            aria-label="Edit department"
+                            title="Edit department"
+                          >
+                            <Pencil size={14} aria-hidden="true" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteDepartment(item.id)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/30 text-rose-600 dark:text-rose-400 transition hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                            aria-label="Delete department"
+                            title="Delete department"
                           >
                             <Trash2 size={14} aria-hidden="true" />
                           </button>
@@ -858,6 +1073,97 @@ export default function AdminDashboardPage() {
               value={editingCategory.description || ""}
               onChange={(e) => setEditingCategory((prev) => ({ ...prev, description: e.target.value }))}
             />
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={isCreateDepartmentOpen}
+        title="Add Department"
+        onClose={() => setIsCreateDepartmentOpen(false)}
+        onConfirm={createDepartment}
+        confirmText="Add Department"
+      >
+        <div className="space-y-2">
+          <Input
+            label="Name"
+            required
+            value={departmentForm.name}
+            onChange={(e) => setDepartmentForm((prev) => ({ ...prev, name: e.target.value }))}
+          />
+          <Input
+            label="Description"
+            value={departmentForm.description}
+            onChange={(e) => setDepartmentForm((prev) => ({ ...prev, description: e.target.value }))}
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(editingDepartment)}
+        title="Edit Department"
+        onClose={() => setEditingDepartment(null)}
+        onConfirm={updateDepartment}
+        confirmText="Save"
+      >
+        {editingDepartment && (
+          <div className="space-y-2">
+            <Input
+              label="Name"
+              value={editingDepartment.name}
+              onChange={(e) => setEditingDepartment((prev) => ({ ...prev, name: e.target.value }))}
+            />
+            <Input
+              label="Description"
+              value={editingDepartment.description || ""}
+              onChange={(e) => setEditingDepartment((prev) => ({ ...prev, description: e.target.value }))}
+            />
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={Boolean(selectedTicket)}
+        title={selectedTicket ? `Ticket #${selectedTicket.id}` : ""}
+        onClose={() => setSelectedTicket(null)}
+        onConfirm={() => setSelectedTicket(null)}
+        confirmText="Close"
+        showCancel={false}
+      >
+        {selectedTicket && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Judul Masalah</h3>
+              <p className="mt-2 text-base font-medium text-slate-900 dark:text-slate-100">{selectedTicket.title}</p>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Deskripsi</h3>
+              <p className="mt-2 text-sm text-slate-700 dark:text-slate-400 leading-relaxed whitespace-pre-wrap break-words">{selectedTicket.description}</p>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Pelapor</h3>
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3">
+                <UserInline person={selectedTicket.requester} fallback="Unknown" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400">Status</h3>
+                <p className="mt-1"><StatusBadge value={selectedTicket.status} /></p>
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400">Priority</h3>
+                <p className="mt-1"><StatusBadge value={selectedTicket.priority} /></p>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-700">
+              <p>Created: {new Date(selectedTicket.created_at).toLocaleString()}</p>
+              {selectedTicket.updated_at && <p>Updated: {new Date(selectedTicket.updated_at).toLocaleString()}</p>}
+            </div>
           </div>
         )}
       </Modal>

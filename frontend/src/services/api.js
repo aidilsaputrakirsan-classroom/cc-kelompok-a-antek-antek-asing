@@ -168,6 +168,38 @@ export const adminApi = {
   dashboard() {
     return request("/dashboard");
   },
+  // Pending users approval workflow
+  pendingUsers({ skip = 0, limit = 20 } = {}) {
+    const params = new URLSearchParams();
+    params.append("skip", String(skip));
+    params.append("limit", String(limit));
+    return request(`/admin/pending-users?${params.toString()}`);
+  },
+  // Departments CRUD
+  getDepartments() {
+    return request("/admin/departments");
+  },
+  createDepartment(payload) {
+    return request("/admin/departments", { method: "POST", body: payload });
+  },
+  updateDepartment(deptId, payload) {
+    return request(`/admin/departments/${deptId}`, { method: "PUT", body: payload });
+  },
+  deleteDepartment(deptId) {
+    return request(`/admin/departments/${deptId}`, { method: "DELETE" });
+  },
+  updateUserDepartment(userId, departmentId) {
+    return request(`/admin/users/${userId}/department`, {
+      method: "PUT",
+      body: { department_id: departmentId },
+    });
+  },
+  get(path) {
+    return request(path);
+  },
+  post(path, payload) {
+    return request(path, { method: "POST", body: payload });
+  },
 };
 
 export async function checkHealth() {

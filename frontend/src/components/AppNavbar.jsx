@@ -1,5 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { usePendingUsers } from "../hooks/usePendingUsers";
+import PendingUserBadge from "./PendingUserBadge";
 
 function NavItem({ to, children, active }) {
   return (
@@ -19,6 +21,7 @@ function NavItem({ to, children, active }) {
 export default function AppNavbar() {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { unreadCount } = usePendingUsers();
 
   const isAdminLike =
     user?.role === "admin" || user?.role === "superadmin" || user?.role === "it_employee";
@@ -41,9 +44,12 @@ export default function AppNavbar() {
             </NavItem>
           )}
           {isAdminLike && (
-            <NavItem to="/admin" active={location.pathname.startsWith("/admin")}>
-              Admin
-            </NavItem>
+            <>
+              <NavItem to="/admin" active={location.pathname.startsWith("/admin")}>
+                Admin
+              </NavItem>
+              <PendingUserBadge unreadCount={unreadCount} />
+            </>
           )}
           <button
             onClick={logout}
