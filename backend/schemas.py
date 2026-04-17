@@ -85,6 +85,18 @@ class ApprovalLogResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str = Field(..., min_length=8, examples=["NewStrongPassword123!"])
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_strength(cls, value):
+        password_regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#_])[A-Za-z\d@$!%*?&#_]{8,}$"
+        if not re.match(password_regex, value):
+            raise ValueError("Katasandi baru terlalu lemah. Minimal 8 karakter mencakup huruf besar, kecil, angka, dan simbol khusus.")
+        return value
+
 # --- Category ---
 class CategoryBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)

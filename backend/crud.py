@@ -7,6 +7,7 @@ from schemas import (
     UserCreate, CategoryCreate, CategoryUpdate, TicketCreate,
     TicketUpdateEmployee, TicketUpdateAdmin, ApproveUserRequest, RejectUserRequest
 )
+from sqlalchemy.exc import IntegrityError
 from auth import hash_password, verify_password
 
 # --- USER ---
@@ -63,6 +64,29 @@ def update_user_department(db: Session, user_id: int, department_id: int) -> Use
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def create_superadmin(db: Session, email: str, password: str) -> None:
+    """Helper specifically for seeding the superadmin based on env variables"""
+    existing_admin = db.query(User).filter(User.email == email).first()
+    if not existing_admin:
+        sa = User(
+            email=email,
+            name="System Superadmin",
+            hashed_password=hash_password(password),
+            role=UserRole.superadmin,
+            status=UserStatus.active,
+            is_active=True,
+            must_change_password=True  # Force change at first login
+        )
+        db.add(sa)
+        db.commit()
+
+def change_user_password(db: Session, user: User, new_password: str) -> bool:
+    user.hashed_password = hash_password(new_password)
+    user.must_change_password = False
+    db.commit()
+    db.refresh(user)
+    return True
 
 
 # --- APPROVAL WORKFLOW ---
@@ -144,7 +168,7 @@ def create_category(db: Session, cat_data: CategoryCreate) -> Category:
     return db_cat
 
 def get_categories(db: Session):
-    return db.query(Category).order_by(Category.name.asc()).all()
+    return db.query(Category).filter(Category.deleted_at.is_(None)).order_by(Category.name.asc()).all()
 
 def update_category(db: Session, cat_id: int, cat_data: CategoryUpdate) -> Category | None:
     db_cat = db.query(Category).filter(Category.id == cat_id).first()
@@ -159,10 +183,24 @@ def update_category(db: Session, cat_id: int, cat_data: CategoryUpdate) -> Categ
 
 def delete_category(db: Session, cat_id: int) -> bool:
     db_cat = db.query(Category).filter(Category.id == cat_id).first()
-    if not db_cat:
+    
+    # 1. Handle not found or already deleted
+    if not db_cat or db_cat.deleted_at is not None:
         return False
-    db.delete(db_cat)
-    db.commit()
+        
+    # 2. Optimized Data Integrity Guard (Using first/exists instead of count)
+    ticket_exists = db.query(Ticket).filter(Ticket.category_id == cat_id).first()
+    if ticket_exists:
+        raise ValueError("Category cannot be deleted because it is still used by existing ticket(s).")
+        
+    # 3. DB-Level Safety Fallback & Soft Delete
+    try:
+        db_cat.deleted_at = datetime.now(timezone.utc)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise
+        
     return True
 
 # --- DEPARTMENT ---
@@ -222,6 +260,11 @@ def update_ticket_employee(db: Session, ticket_id: int, ticket_data: TicketUpdat
     db_ticket = db.query(Ticket).filter(Ticket.id == ticket_id, Ticket.requester_id == requester_id).first()
     if not db_ticket:
         return None
+        
+    # Prevent edits if ticket is already resolved or closed (only open and in_progress are mutable by employee)
+    if db_ticket.status in [TicketStatus.resolved, TicketStatus.closed]:
+        raise ValueError("Cannot modify ticket that has been resolved or closed")
+        
     update_data = ticket_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_ticket, field, value)

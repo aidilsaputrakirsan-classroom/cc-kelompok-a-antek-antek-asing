@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 
@@ -11,15 +12,16 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models import User, UserRole, UserStatus
+from config import settings
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key-for-development")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+# In-memory blacklist for revoked tokens (jti)
+# NOTE: In production with multiple workers/containers, use Redis instead.
+token_blacklist = set()
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -29,13 +31,25 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    now = datetime.now(timezone.utc)
+    expire = now + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({
+        "exp": expire,
+        "iat": now,
+        "jti": str(uuid.uuid4())
+    })
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 def decode_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        jti = payload.get("jti")
+        if jti and jti in token_blacklist:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         return payload
     except JWTError:
         raise HTTPException(
@@ -44,7 +58,8 @@ def decode_token(token: str) -> dict:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+def get_current_unverified_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+    """Gets the current user regardless of their password change requirement (Used for the change password route)."""
     payload = decode_token(token)
     user_id_str: str = payload.get("sub")
     if user_id_str is None:
@@ -58,20 +73,24 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User tidak ditemukan")
 
-    # Status-based access control
     if user.status == UserStatus.pending:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your account is awaiting approval."
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Your account is awaiting approval.")
     if user.status == UserStatus.rejected:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your account has been rejected. Please contact admin."
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Your account has been rejected. Please contact admin.")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Akun tidak aktif")
+    
     return user
+
+
+def get_current_user(current_user: User = Depends(get_current_unverified_user)) -> User:
+    """Default dependency: strictly blocks users who must change their password"""
+    if current_user.must_change_password:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="You must change your default password before accessing this system."
+        )
+    return current_user
 
 class RoleChecker:
     def __init__(self, allowed_roles: List[UserRole]):

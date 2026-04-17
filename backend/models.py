@@ -60,6 +60,7 @@ class User(Base):
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
     status = Column(SQLEnum(UserStatus), default=UserStatus.pending, nullable=False)
     is_active = Column(Boolean, default=False)
+    must_change_password = Column(Boolean, default=False, nullable=False)
     approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -81,6 +82,7 @@ class Category(Base):
     name = Column(String(100), unique=True, nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
 
     tickets = relationship("Ticket", back_populates="category")
 

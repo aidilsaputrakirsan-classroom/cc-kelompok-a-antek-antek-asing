@@ -34,7 +34,7 @@ services:
     container_name: antick-async-backend
     restart: unless-stopped
     env_file:
-      - ./backend/.env.docker
+      - ./backend/.env
     ports:
       - "8000:8000"
     networks:
