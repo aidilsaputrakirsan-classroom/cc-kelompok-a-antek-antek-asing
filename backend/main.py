@@ -9,6 +9,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from database import engine, get_db, SessionLocal
 from models import Base, User, UserRole, UserStatus
 from schemas import (
@@ -331,9 +332,14 @@ def update_category(cat_id: int, category: CategoryUpdate, db: Session = Depends
 
 @app.delete("/categories/{cat_id}", status_code=204, dependencies=[Depends(allow_admins)])
 def delete_category(cat_id: int, db: Session = Depends(get_db)):
-    deleted = crud.delete_category(db, cat_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Kategori tidak ditemukan")
+    try:
+        deleted = crud.delete_category(db, cat_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Kategori tidak ditemukan")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except IntegrityError:
+        raise HTTPException(status_code=409, detail="Database integrity constraint failed. Category cannot be modified safely.")
     return None
 
 # === TICKETS ===
@@ -370,10 +376,13 @@ def update_ticket_by_employee(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """Employee meng-update tiket mereka sendiri (judul/deskripsi/prioritas)"""
-    updated = crud.update_ticket_employee(db, ticket_id, ticket, requester_id=current_user.id)
-    if not updated:
-        raise HTTPException(status_code=404, detail="Tiket tidak ditemukan atau Anda tidak berhak")
-    return updated
+    try:
+        updated = crud.update_ticket_employee(db, ticket_id, ticket, requester_id=current_user.id)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Tiket tidak ditemukan atau Anda tidak berhak")
+        return updated
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
 @app.put("/tickets/{ticket_id}/admin", response_model=TicketResponse, dependencies=[Depends(allow_it_and_admins)])
 def update_ticket_by_admin(

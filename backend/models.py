@@ -67,6 +67,7 @@ class Category(Base):
     name = Column(String(100), unique=True, nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
 
     tickets = relationship("Ticket", back_populates="category")
 
