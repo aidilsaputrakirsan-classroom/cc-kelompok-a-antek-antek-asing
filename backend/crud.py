@@ -76,7 +76,8 @@ def create_superadmin(db: Session, email: str, password: str) -> None:
             role=UserRole.superadmin,
             status=UserStatus.active,
             is_active=True,
-            must_change_password=True  # Force change at first login
+            must_change_password=False  # Allow initial login without forced password change
+            # must_change_password=True  # ini kalo mau paksa ganti password setelah login pertama
         )
         db.add(sa)
         db.commit()

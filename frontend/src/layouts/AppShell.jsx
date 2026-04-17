@@ -162,7 +162,7 @@ export default function AppShell() {
 
   return (
     <div className="min-h-dvh bg-[linear-gradient(180deg,#f8fbff_0%,#eef3f9_100%)] dark:bg-[linear-gradient(180deg,#0f172a_0%,#1e293b_100%)] md:h-screen md:overflow-hidden transition-colors duration-300">
-      <div className="mx-auto flex min-h-dvh w-full max-w-[1400px] gap-3 p-3 md:h-full md:gap-5 md:p-4">
+      <div className="flex min-h-dvh w-screen gap-3 p-3 md:h-full md:gap-5 md:p-4">
         <aside
           className={`group/sidebar fixed inset-y-0 left-0 z-40 w-72 border-r border-slate-200 bg-white/95 dark:border-slate-700 dark:bg-slate-900/95 p-4 backdrop-blur-md transition-[transform,width] duration-300 ease-in-out md:relative md:static md:h-full md:translate-x-0 md:rounded-2xl md:border ${
             sidebarCollapsed ? "md:w-24" : "md:w-72"

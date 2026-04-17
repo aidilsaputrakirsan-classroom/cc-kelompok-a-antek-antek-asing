@@ -29,7 +29,8 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables
+    # Drop and recreate all tables for schema consistency
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     
     # Seed default data
