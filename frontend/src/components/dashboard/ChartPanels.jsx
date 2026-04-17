@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 
 function buildPoints(series, maxValue) {
+  // Add 20% padding to top for better visualization of small variations
+  const paddedMax = maxValue * 1.2;
   return series.map((value, index) => {
     const x = (index / (series.length - 1 || 1)) * 100;
-    const y = 100 - (value / Math.max(maxValue, 1)) * 100;
+    const y = 100 - (value / Math.max(paddedMax, 1)) * 100;
     return { x, y, value, index };
   });
 }
@@ -84,9 +86,27 @@ export function ActivityLineChart({ labels, lines }) {
 
       <div className="relative h-56 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-3">
         <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="none">
-          {[20, 40, 60, 80].map((y) => (
-            <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="#e2e8f0" strokeOpacity="0.2" strokeWidth="0.6" />
+          {/* Grid lines */}
+          {[0, 20, 40, 60, 80, 100].map((y) => (
+            <line 
+              key={y} 
+              x1="0" 
+              y1={y} 
+              x2="100" 
+              y2={y} 
+              stroke="#e2e8f0" 
+              strokeOpacity={y === 0 || y === 100 ? "0.4" : "0.2"} 
+              strokeWidth="0.6" 
+            />
           ))}
+          
+          {/* Y-axis labels */}
+          <text x="-2" y="101" textAnchor="end" fontSize="7" fill="#94a3b8">0</text>
+          <text x="-2" y="81" textAnchor="end" fontSize="7" fill="#94a3b8">25%</text>
+          <text x="-2" y="61" textAnchor="end" fontSize="7" fill="#94a3b8">50%</text>
+          <text x="-2" y="41" textAnchor="end" fontSize="7" fill="#94a3b8">75%</text>
+          <text x="-2" y="21" textAnchor="end" fontSize="7" fill="#94a3b8">100%</text>
+          
           {hoveredPoint && (
             <line
               x1={hoveredPoint.x}
@@ -104,7 +124,7 @@ export function ActivityLineChart({ labels, lines }) {
                 points={asPolyline(line.points)}
                 fill="none"
                 stroke={line.color}
-                strokeWidth="1.8"
+                strokeWidth="2.5"
                 strokeLinejoin="round"
                 strokeLinecap="round"
               />
@@ -311,6 +331,151 @@ export function CategoryDonutChart({ title = "Category Analytics", values }) {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+export function DepartmentBarChart({ title = "Department Analytics", values }) {
+  const [hoveredBar, setHoveredBar] = useState(null);
+  const maxValue = useMemo(() => Math.max(...values.map((item) => item.tickets), 1), [values]);
+
+  const palette = ["#2563eb", "#38bdf8", "#a78bfa", "#f59e0b", "#10b981", "#0ea5e9", "#ec4899", "#6366f1"];
+
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
+      <h3 className="mb-4 text-sm font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
+      <div className="relative h-56 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-4">
+        <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="none">
+          {[20, 40, 60, 80].map((y) => (
+            <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="#e2e8f0" strokeOpacity="0.2" strokeWidth="0.6" />
+          ))}
+          {values.map((item, index) => {
+            const barWidth = 100 / (values.length * 1.5);
+            const spacing = barWidth * 0.5;
+            const x = (index * (barWidth + spacing)) + spacing / 2;
+            const height = (item.tickets / maxValue) * 100;
+            const y = 100 - height;
+            const isHovered = hoveredBar === index;
+            const color = palette[index % palette.length];
+
+            return (
+              <g
+                key={item.department}
+                onMouseEnter={() => setHoveredBar(index)}
+                onMouseLeave={() => setHoveredBar(null)}
+                className="cursor-pointer"
+              >
+                <rect
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={height}
+                  fill={color}
+                  opacity={isHovered ? 1 : 0.85}
+                  className="transition-opacity duration-200"
+                >
+                  <title>{`${item.department}: ${item.tickets} tickets`}</title>
+                </rect>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      <div className="mt-4 grid gap-2 text-xs">
+        {values.length === 0 ? (
+          <p className="text-slate-500 dark:text-slate-400">No data available</p>
+        ) : (
+          values.map((item, index) => (
+            <div
+              key={item.department}
+              className="flex items-center justify-between text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-300 cursor-pointer transition"
+              onMouseEnter={() => setHoveredBar(index)}
+              onMouseLeave={() => setHoveredBar(null)}
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: palette[index % palette.length] }} />
+                {item.department}
+              </span>
+              <span className="font-semibold">{item.tickets}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function ResponseTimeBarChart({ title = "Response Time by IT Employee", values }) {
+  const [hoveredBar, setHoveredBar] = useState(null);
+  const maxValue = useMemo(() => Math.max(...values.map((item) => item.avg_response_hours), 1), [values]);
+
+  const getColor = (hours) => {
+    if (hours <= 2) return "#10b981"; // green
+    if (hours <= 4) return "#f59e0b"; // amber
+    if (hours <= 8) return "#ef4444"; // red
+    return "#dc2626"; // darker red
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
+      <h3 className="mb-4 text-sm font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
+      <div className="space-y-3">
+        {values.length === 0 ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">No data available</p>
+        ) : (
+          values.map((item, index) => {
+            const percentage = (item.avg_response_hours / maxValue) * 100;
+            const isHovered = hoveredBar === index;
+            const color = getColor(item.avg_response_hours);
+
+            return (
+              <div
+                key={item.employee}
+                className="space-y-1"
+                onMouseEnter={() => setHoveredBar(index)}
+                onMouseLeave={() => setHoveredBar(null)}
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-slate-700 dark:text-slate-300 truncate">{item.employee}</span>
+                  <span className="ml-2 flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                    <span style={{ color }}>{item.avg_response_hours}h</span>
+                    <span className="text-slate-500 dark:text-slate-500">({item.ticket_count})</span>
+                  </span>
+                </div>
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                  <div
+                    className={`h-full transition-all duration-300 ${isHovered ? "opacity-100" : "opacity-90"}`}
+                    style={{
+                      width: `${Math.max(percentage, 5)}%`,
+                      backgroundColor: color,
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-3 border-t border-slate-200 dark:border-slate-700 pt-3 text-[11px]">
+        <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#10b981" }} />
+          Fast ≤2h
+        </span>
+        <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#f59e0b" }} />
+          Medium ≤4h
+        </span>
+        <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#ef4444" }} />
+          Slow ≤8h
+        </span>
+        <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#dc2626" }} />
+          Very Slow {'>'}8h
+        </span>
       </div>
     </div>
   );

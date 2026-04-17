@@ -312,3 +312,54 @@ def get_dashboard_metrics(db: Session):
         "by_category": category_dict,
         "by_priority": priority_dict
     }
+
+def get_department_analytics(db: Session):
+    """Get ticket count per department (from requesters)"""
+    dept_counts = db.query(
+        Department.name,
+        func.count(Ticket.id).label('count')
+    ).outerjoin(
+        User, Department.id == User.department_id
+    ).outerjoin(
+        Ticket, User.id == Ticket.requester_id
+    ).group_by(Department.id, Department.name).order_by(func.count(Ticket.id).desc()).all()
+    
+    return [{"department": name, "tickets": count} for name, count in dept_counts]
+
+def get_response_time_analytics(db: Session):
+    """Get average response time (hours) per IT employee"""
+    from sqlalchemy import extract, case
+    
+    it_employees = db.query(User).filter(
+        User.role.in_([UserRole.it_employee, UserRole.admin])
+    ).all()
+    
+    results = []
+    for employee in it_employees:
+        tickets = db.query(Ticket).filter(Ticket.assignee_id == employee.id).all()
+        
+        if not tickets:
+            results.append({
+                "employee": employee.name,
+                "avg_response_hours": 0,
+                "ticket_count": 0
+            })
+            continue
+        
+        total_hours = 0
+        count = 0
+        for ticket in tickets:
+            if ticket.created_at and ticket.updated_at:
+                time_diff = ticket.updated_at - ticket.created_at
+                hours = time_diff.total_seconds() / 3600
+                total_hours += hours
+                count += 1
+        
+        avg_hours = total_hours / count if count > 0 else 0
+        results.append({
+            "employee": employee.name,
+            "avg_response_hours": round(avg_hours, 2),
+            "ticket_count": len(tickets)
+        })
+    
+    return sorted(results, key=lambda x: x['avg_response_hours'], reverse=True)

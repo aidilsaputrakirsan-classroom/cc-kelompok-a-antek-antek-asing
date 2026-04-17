@@ -508,3 +508,13 @@ def delete_ticket(ticket_id: int, db: Session = Depends(get_db)):
 def get_dashboard(db: Session = Depends(get_db)):
     """Mengambil metric untuk dashboard (Count & Chart Data)"""
     return crud.get_dashboard_metrics(db)
+
+@app.get("/dashboard/department-analytics", dependencies=[Depends(allow_it_and_admins)])
+def get_department_analytics(db: Session = Depends(get_db)):
+    """Get analytics per department"""
+    return crud.get_department_analytics(db)
+
+@app.get("/dashboard/response-time-analytics", dependencies=[Depends(allow_it_and_admins)])
+def get_response_time_analytics(db: Session = Depends(get_db)):
+    """Get response time analytics per IT employee"""
+    return crud.get_response_time_analytics(db)

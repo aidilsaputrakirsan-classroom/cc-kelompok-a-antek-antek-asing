@@ -168,6 +168,12 @@ export const adminApi = {
   dashboard() {
     return request("/dashboard");
   },
+  departmentAnalytics() {
+    return request("/dashboard/department-analytics");
+  },
+  responseTimeAnalytics() {
+    return request("/dashboard/response-time-analytics");
+  },
   // Pending users approval workflow
   pendingUsers({ skip = 0, limit = 20 } = {}) {
     const params = new URLSearchParams();

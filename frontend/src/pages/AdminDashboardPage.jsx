@@ -9,7 +9,7 @@ import Input from "../components/ui/Input";
 import Modal from "../components/ui/Modal";
 import StatusBadge from "../components/StatusBadge";
 import LoadingSpinner from "../components/LoadingSpinner";
-import { ActivityLineChart, CategoryDonutChart } from "../components/dashboard/ChartPanels";
+import { ActivityLineChart, CategoryDonutChart, DepartmentBarChart, ResponseTimeBarChart } from "../components/dashboard/ChartPanels";
 
 const statusOptions = ["open", "in_progress", "resolved", "closed"];
 const roleOptions = ["employee", "it_employee", "admin", "superadmin"];
@@ -183,6 +183,8 @@ export default function AdminDashboardPage() {
   const [categories, setCategories] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [dashboard, setDashboard] = useState(null);
+  const [departmentAnalytics, setDepartmentAnalytics] = useState([]);
+  const [responseTimeAnalytics, setResponseTimeAnalytics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState(
@@ -207,18 +209,22 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setError("");
     try {
-      const [ticketData, userData, dashboardData, categoryData, departmentData] = await Promise.all([
+      const [ticketData, userData, dashboardData, categoryData, departmentData, deptAnalytics, responseTimeData] = await Promise.all([
         ticketApi.list({ limit: 100 }),
         adminApi.listUsers({ limit: 100 }),
         adminApi.dashboard(),
         categoryApi.list(),
         adminApi.getDepartments(),
+        adminApi.departmentAnalytics(),
+        adminApi.responseTimeAnalytics(),
       ]);
       setTickets(ticketData.items || []);
       setUsers(userData.items || []);
       setDashboard(dashboardData);
       setCategories(categoryData || []);
       setDepartments(Array.isArray(departmentData) ? departmentData : (departmentData.items || []));
+      setDepartmentAnalytics(deptAnalytics || []);
+      setResponseTimeAnalytics(responseTimeData || []);
     } catch (err) {
       setError(err.message || "Gagal memuat dashboard admin.");
     } finally {
@@ -577,6 +583,11 @@ export default function AdminDashboardPage() {
               ]}
             />
             <CategoryDonutChart values={categoryValues} />
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <DepartmentBarChart values={departmentAnalytics} />
+            <ResponseTimeBarChart values={responseTimeAnalytics} />
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[1.7fr_1fr]">
