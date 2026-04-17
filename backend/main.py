@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, Query
@@ -6,9 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import engine, get_db, SessionLocal
-from models import Base, User, UserRole
+from models import Base, User, UserRole, UserStatus
 from schemas import (
-    UserCreate, UserResponse, LoginRequest, TokenResponse, UserRoleUpdate,
+    UserCreate, UserResponse, RegisterResponse, LoginRequest, TokenResponse,
+    UserRoleUpdate, UserDepartmentUpdate,
+    ApproveUserRequest, RejectUserRequest, ApprovalLogResponse,
     CategoryCreate, CategoryUpdate, CategoryResponse,
     TicketCreate, TicketUpdateEmployee, TicketUpdateAdmin, TicketResponse, TicketListResponse
 )
@@ -35,7 +38,9 @@ async def lifespan(app: FastAPI):
                 email=superadmin_email,
                 name="System Superadmin",
                 hashed_password=hash_password(superadmin_password),
-                role=UserRole.superadmin
+                role=UserRole.superadmin,
+                status=UserStatus.active,
+                is_active=True
             )
             db.add(sa)
             db.commit()
@@ -91,13 +96,16 @@ def read_root():
     return {"message": "IT Support API Online. Visit /docs"}
 
 # === AUTH ===
-@app.post("/auth/register", response_model=UserResponse, status_code=201)
+@app.post("/auth/register", response_model=RegisterResponse, status_code=201)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Pendaftaran publik otomatis mendapat role Employee"""
+    """Pendaftaran publik — akun berstatus PENDING hingga di-approve Admin/Superadmin"""
     user = crud.create_user(db=db, user_data=user_data, default_role=UserRole.employee)
     if not user:
         raise HTTPException(status_code=400, detail="Email sudah terdaftar")
-    return user
+    return {
+        "user": user,
+        "message": "Registrasi berhasil. Akun Anda menunggu persetujuan admin."
+    }
 
 @app.get("/health")
 def health_check():
@@ -108,6 +116,24 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     user = crud.authenticate_user(db=db, email=form_data.username, password=form_data.password)
     if not user:
         raise HTTPException(status_code=401, detail="Email atau password salah")
+    
+    # Check account status before issuing token
+    if user.status == UserStatus.pending:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account is awaiting approval."
+        )
+    if user.status == UserStatus.rejected:
+        raise HTTPException(
+            status_code=403,
+            detail="Your account has been rejected. Please contact admin."
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=403,
+            detail="Akun tidak aktif. Hubungi admin."
+        )
+    
     token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": token, "token_type": "bearer", "user": user}
 
@@ -170,6 +196,76 @@ def update_user_role(
 
     updated = crud.update_user_role(db, user_id, role_update.role)
     return updated
+
+@app.put("/users/me/department", response_model=UserResponse)
+def assign_department(
+    dept_update: UserDepartmentUpdate, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    updated = crud.update_user_department(db, current_user.id, dept_update.department)
+    if not updated:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    return updated
+
+# === ADMIN: USER APPROVAL WORKFLOW ===
+@app.get("/admin/pending-users", dependencies=[Depends(allow_admins)])
+def list_pending_users(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    db: Session = Depends(get_db)
+):
+    """Admin/Superadmin: melihat daftar user dengan status PENDING"""
+    return crud.get_pending_users(db, skip, limit)
+
+@app.post("/admin/approve-user/{user_id}", response_model=UserResponse)
+def approve_user(
+    user_id: int,
+    data: ApproveUserRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_admins)
+):
+    """Admin/Superadmin: approve user PENDING + assign department"""
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    if target.status != UserStatus.pending:
+        raise HTTPException(status_code=400, detail="User tidak dalam status PENDING")
+    
+    result = crud.approve_user(db, user_id, data, admin_id=current_user.id)
+    if not result:
+        raise HTTPException(status_code=400, detail="Gagal meng-approve user")
+    return result
+
+@app.post("/admin/reject-user/{user_id}", response_model=UserResponse)
+def reject_user(
+    user_id: int,
+    data: RejectUserRequest = RejectUserRequest(),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_admins)
+):
+    """Admin/Superadmin: reject user PENDING"""
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+    if target.status != UserStatus.pending:
+        raise HTTPException(status_code=400, detail="User tidak dalam status PENDING")
+    
+    result = crud.reject_user(db, user_id, admin_id=current_user.id, notes=data.notes)
+    if not result:
+        raise HTTPException(status_code=400, detail="Gagal me-reject user")
+    return result
+
+@app.get("/admin/approval-logs")
+def get_approval_logs(
+    user_id: Optional[int] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_admins)
+):
+    """Admin/Superadmin: melihat audit log approval/rejection"""
+    return crud.get_approval_logs(db, user_id=user_id, skip=skip, limit=limit)
 
 # === CATEGORIES ===
 @app.get("/categories", response_model=list[CategoryResponse])

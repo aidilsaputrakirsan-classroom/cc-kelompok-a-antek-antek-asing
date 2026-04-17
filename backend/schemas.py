@@ -2,7 +2,7 @@ import re
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
-from models import UserRole, TicketStatus, TicketPriority
+from models import UserRole, UserStatus, TicketStatus, TicketPriority, UserDepartment
 
 # --- User ---
 class UserCreate(BaseModel):
@@ -31,13 +31,41 @@ class UserResponse(BaseModel):
     email: str
     name: str
     role: UserRole
+    department: Optional[UserDepartment] = None
+    status: UserStatus
     is_active: bool
+    approved_by: Optional[int] = None
+    approved_at: Optional[datetime] = None
     created_at: datetime
     class Config:
         from_attributes = True
 
+class RegisterResponse(BaseModel):
+    user: UserResponse
+    message: str
+
 class UserRoleUpdate(BaseModel):
     role: UserRole
+
+class UserDepartmentUpdate(BaseModel):
+    department: UserDepartment
+
+class ApproveUserRequest(BaseModel):
+    department: UserDepartment
+
+class RejectUserRequest(BaseModel):
+    notes: Optional[str] = Field(None, max_length=500, examples=["Data tidak valid"])
+
+class ApprovalLogResponse(BaseModel):
+    id: int
+    user_id: int
+    action: str
+    department_assigned: Optional[UserDepartment] = None
+    performed_by: int
+    performed_at: datetime
+    notes: Optional[str] = None
+    class Config:
+        from_attributes = True
 
 # --- Category ---
 class CategoryBase(BaseModel):
