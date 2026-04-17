@@ -2,21 +2,26 @@ import os
 from typing import Optional
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 from database import engine, get_db, SessionLocal
 from models import Base, User, UserRole, UserStatus
 from schemas import (
     UserCreate, UserResponse, RegisterResponse, LoginRequest, TokenResponse,
-    UserRoleUpdate, UserDepartmentUpdate,
+    UserRoleUpdate, UserDepartmentUpdate, ChangePasswordRequest,
     ApproveUserRequest, RejectUserRequest, ApprovalLogResponse,
     CategoryCreate, CategoryUpdate, CategoryResponse,
     TicketCreate, TicketUpdateEmployee, TicketUpdateAdmin, TicketResponse, TicketListResponse
 )
-from auth import create_access_token, get_current_user, RoleChecker, hash_password
+from fastapi.security.utils import get_authorization_scheme_param
+from auth import create_access_token, get_current_user, get_current_unverified_user, RoleChecker, hash_password, verify_password, oauth2_scheme, token_blacklist, decode_token
 import crud
+from config import settings
 
 load_dotenv()
 
@@ -28,22 +33,8 @@ async def lifespan(app: FastAPI):
     # Seed default data
     db = SessionLocal()
     try:
-        # 1. Superadmin
-        superadmin_email = os.getenv("SUPERADMIN_EMAIL", "superadmin@admin.com")
-        superadmin_password = os.getenv("SUPERADMIN_PASSWORD", "Superadmin123!")
-        
-        existing_admin = db.query(User).filter(User.email == superadmin_email).first()
-        if not existing_admin:
-            sa = User(
-                email=superadmin_email,
-                name="System Superadmin",
-                hashed_password=hash_password(superadmin_password),
-                role=UserRole.superadmin,
-                status=UserStatus.active,
-                is_active=True
-            )
-            db.add(sa)
-            db.commit()
+        # 1. Superadmin (Tersentralisasi di CRUD menggunakan sistem keamanan Settings)
+        crud.create_superadmin(db, settings.SUPERADMIN_EMAIL, settings.SUPERADMIN_PASSWORD)
 
         # 2. Categories
         from models import Category
@@ -72,6 +63,12 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# --- RATE LIMITER CONFIG ---
+# Gunakan X-Forwarded-For jika di belakang Reverse Proxy (Misal: Nginx)
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # CORS
 # Kita set default-nya untuk Vite (5173) dan React standar (3000)
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
@@ -97,7 +94,8 @@ def read_root():
 
 # === AUTH ===
 @app.post("/auth/register", response_model=RegisterResponse, status_code=201)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     """Pendaftaran publik — akun berstatus PENDING hingga di-approve Admin/Superadmin"""
     user = crud.create_user(db=db, user_data=user_data, default_role=UserRole.employee)
     if not user:
@@ -112,7 +110,8 @@ def health_check():
     return {"status": "healthy"}
 
 @app.post("/auth/login", response_model=TokenResponse)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = crud.authenticate_user(db=db, email=form_data.username, password=form_data.password)
     if not user:
         raise HTTPException(status_code=401, detail="Email atau password salah")
@@ -135,7 +134,52 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         )
     
     token = create_access_token(data={"sub": str(user.id)})
-    return {"access_token": token, "token_type": "bearer", "user": user}
+    
+    # Extra check info on token return
+    message = "Login berhasil."
+    if user.must_change_password:
+        message = "WARNING: You are using the default credentials. You must change your password immediately."
+        
+    return {"access_token": token, "token_type": "bearer", "user": user, "detail": message}
+
+@app.post("/auth/change-password")
+def change_password(
+    data: ChangePasswordRequest, 
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_unverified_user)
+):
+    """Mengizinkan user untuk mengganti password mereka, lalu menghancurkan token saat ini (Force Re-login)"""
+    if not verify_password(data.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Password lama salah")
+        
+    if verify_password(data.new_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Password baru tidak boleh sama dengan password saat ini")
+        
+    crud.change_user_password(db, current_user, data.new_password)
+    
+    # Keamanan Tambahan: Segera batalkan token yang digunakan untuk request ini
+    try:
+        payload = decode_token(token)
+        jti = payload.get("jti")
+        if jti:
+            token_blacklist.add(jti)
+    except Exception:
+        pass
+    
+    return {"message": "Password berhasil diganti. Silakan login kembali dengan password baru Anda."}
+
+@app.post("/auth/logout")
+def logout(token: str = Depends(oauth2_scheme)):
+    """Menghancurkan kredibilitas akses token sehingga tidak bisa dipakai lagi (Revocation)"""
+    try:
+        payload = decode_token(token)
+        jti = payload.get("jti")
+        if jti:
+            token_blacklist.add(jti)
+    except Exception:
+        pass # If token is invalid anyway, no need to blacklist
+    return {"message": "Anda berhasil logout."}
 
 @app.get("/auth/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):

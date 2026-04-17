@@ -61,6 +61,29 @@ def update_user_department(db: Session, user_id: int, new_department: UserDepart
     db.refresh(db_user)
     return db_user
 
+def create_superadmin(db: Session, email: str, password: str) -> None:
+    """Helper specifically for seeding the superadmin based on env variables"""
+    existing_admin = db.query(User).filter(User.email == email).first()
+    if not existing_admin:
+        sa = User(
+            email=email,
+            name="System Superadmin",
+            hashed_password=hash_password(password),
+            role=UserRole.superadmin,
+            status=UserStatus.active,
+            is_active=True,
+            must_change_password=True  # Force change at first login
+        )
+        db.add(sa)
+        db.commit()
+
+def change_user_password(db: Session, user: User, new_password: str) -> bool:
+    user.hashed_password = hash_password(new_password)
+    user.must_change_password = False
+    db.commit()
+    db.refresh(user)
+    return True
+
 
 # --- APPROVAL WORKFLOW ---
 def get_pending_users(db: Session, skip: int = 0, limit: int = 20):
