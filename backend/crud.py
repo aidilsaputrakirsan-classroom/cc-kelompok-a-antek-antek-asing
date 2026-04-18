@@ -2,13 +2,21 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import Optional
-from models import User, Category, Ticket, UserRole, UserStatus, UserDepartment, TicketStatus, ApprovalLog, Department
+from models import User, Category, Ticket, UserRole, UserStatus, UserDepartment, TicketStatus, ApprovalLog, Department, AVATAR_COUNT
 from schemas import (
     UserCreate, CategoryCreate, CategoryUpdate, TicketCreate,
     TicketUpdateEmployee, TicketUpdateAdmin, ApproveUserRequest, RejectUserRequest
 )
 from sqlalchemy.exc import IntegrityError
 from auth import hash_password, verify_password
+
+# --- VALIDATION ---
+def validate_avatar_index(index: int):
+    """Validate avatar index is within valid range"""
+    if not isinstance(index, int):
+        raise ValueError("Avatar index must be integer")
+    if index < 0 or index >= AVATAR_COUNT:
+        raise ValueError(f"Invalid avatar index. Must be between 0 and {AVATAR_COUNT - 1}")
 
 # --- USER ---
 def create_user(db: Session, user_data: UserCreate, default_role: UserRole = UserRole.employee, auto_active: bool = False) -> User:
@@ -88,6 +96,37 @@ def change_user_password(db: Session, user: User, new_password: str) -> bool:
     db.commit()
     db.refresh(user)
     return True
+
+def update_user_avatar(db: Session, user_id: int, avatar_index: int) -> User | None:
+    """Update user avatar with validation"""
+    validate_avatar_index(avatar_index)
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return None
+    db_user.avatar_index = avatar_index
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def update_user_profile(db: Session, user_id: int, name: Optional[str] = None, email: Optional[str] = None) -> User | None:
+    """Update user profile (name and/or email)"""
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return None
+    
+    # Check if email is being changed and if it's already taken
+    if email and email != db_user.email:
+        existing_email = db.query(User).filter(User.email == email, User.id != user_id).first()
+        if existing_email:
+            raise ValueError("Email sudah terdaftar")
+        db_user.email = email
+    
+    if name:
+        db_user.name = name
+    
+    db.commit()
+    db.refresh(db_user)
+    return db_user
 
 
 # --- APPROVAL WORKFLOW ---

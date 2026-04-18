@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Pencil, Plus, Trash2, User, Eye } from "lucide-react";
+import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Pencil, Plus, Trash2, User, Eye, Ticket, Users } from "lucide-react";
 import { adminApi, categoryApi, ticketApi } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { getAvatarPath } from "../constants/avatars";
+import { AnimatedMetricValue } from "../components/AnimatedMetricValue";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
@@ -60,12 +62,17 @@ function buildSeries(tickets) {
 }
 
 function getAvatarUrl(person) {
+  // Use avatar_index if available, otherwise fallback to default
+  if (typeof person?.avatar_index === "number") {
+    return getAvatarPath(person.avatar_index);
+  }
+  // Fallback to legacy URL fields for backward compatibility
   return (
     person?.profile_picture ||
     person?.profilePicture ||
     person?.avatar_url ||
     person?.avatarUrl ||
-    ""
+    getAvatarPath() // Default avatar
   );
 }
 
@@ -76,21 +83,14 @@ function UserInline({ person, fallback = "-" }) {
 
   const avatarUrl = getAvatarUrl(person);
   const displayName = person?.name || fallback;
-  const initial = (displayName || "U").charAt(0).toUpperCase();
 
   return (
     <span className="inline-flex items-center gap-2">
-      {avatarUrl ? (
-        <img
-          src={avatarUrl}
-          alt={displayName}
-          className="h-6 w-6 rounded-full border border-slate-200 dark:border-slate-700 object-cover"
-        />
-      ) : (
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800 text-[10px] font-semibold text-slate-700 dark:text-slate-300">
-          {initial}
-        </span>
-      )}
+      <img
+        src={avatarUrl}
+        alt={displayName}
+        className="h-6 w-6 rounded-full border border-slate-200 dark:border-slate-700 object-cover"
+      />
       <div className="flex flex-row items-center gap-2">
         <span className="text-slate-700 dark:text-slate-300">{displayName}</span>
         {person?.department && (
@@ -132,15 +132,6 @@ function AssigneeAvatar({ person }) {
 
   const avatarUrl = getAvatarUrl(person);
   const displayName = person?.name || "U";
-  const initial = displayName.charAt(0).toUpperCase();
-
-  if (!avatarUrl) {
-    return (
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-700">
-        {initial}
-      </span>
-    );
-  }
 
   return (
     <img
@@ -308,10 +299,10 @@ export default function AdminDashboardPage() {
     const activeUsers = users.filter((item) => item.is_active).length;
 
     return [
-      { label: "Total Tickets", value: total },
-      { label: "Active Users", value: activeUsers },
-      { label: "Response Time", value: "2.4h" },
-      { label: "Resolved", value: resolvedRate },
+      { label: "Total Tickets", value: total, icon: Ticket },
+      { label: "Active Users", value: activeUsers, icon: Users },
+      { label: "Response Time", value: "2.4h", icon: Clock3 },
+      { label: "Resolved", value: resolvedRate, icon: CheckCheck },
     ];
   }, [dashboard, tickets.length, users]);
 
@@ -569,7 +560,7 @@ export default function AdminDashboardPage() {
         <>
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {summary.map((item) => (
-              <MetricCard key={item.label} label={item.label} value={item.value} />
+              <MetricCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
             ))}
           </section>
 
@@ -1137,43 +1128,67 @@ export default function AdminDashboardPage() {
         open={Boolean(selectedTicket)}
         title={selectedTicket ? `Ticket #${selectedTicket.id}` : ""}
         onClose={() => setSelectedTicket(null)}
-        onConfirm={() => setSelectedTicket(null)}
-        confirmText="Close"
-        showCancel={false}
       >
         {selectedTicket && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Judul Masalah</h3>
-              <p className="mt-2 text-base font-medium text-slate-900 dark:text-slate-100">{selectedTicket.title}</p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Deskripsi</h3>
-              <p className="mt-2 text-sm text-slate-700 dark:text-slate-400 leading-relaxed whitespace-pre-wrap break-words">{selectedTicket.description}</p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Pelapor</h3>
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3">
-                <UserInline person={selectedTicket.requester} fallback="Unknown" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-[1.5fr_1fr] gap-6">
+            {/* Left Column: Title & Description & Timestamps */}
+            <div className="space-y-4">
+              {/* Title with border */}
               <div>
-                <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400">Status</h3>
-                <p className="mt-1"><StatusBadge value={selectedTicket.status} /></p>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-2">Judul Masalah</h3>
+                <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">{selectedTicket.title}</p>
               </div>
+
+              {/* Description */}
               <div>
-                <h3 className="text-xs font-semibold text-slate-600 dark:text-slate-400">Priority</h3>
-                <p className="mt-1"><StatusBadge value={selectedTicket.priority} /></p>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-2">Deskripsi</h3>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap break-words bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                  {selectedTicket.description}
+                </p>
+              </div>
+
+              {/* Timestamps - minimal styling */}
+              <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1 pt-2">
+                <p>Created: {new Date(selectedTicket.created_at).toLocaleString("id-ID")}</p>
+                {selectedTicket.updated_at && (
+                  <p>Updated: {new Date(selectedTicket.updated_at).toLocaleString("id-ID")}</p>
+                )}
               </div>
             </div>
 
-            <div className="text-xs text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200 dark:border-slate-700">
-              <p>Created: {new Date(selectedTicket.created_at).toLocaleString()}</p>
-              {selectedTicket.updated_at && <p>Updated: {new Date(selectedTicket.updated_at).toLocaleString()}</p>}
+            {/* Right Column: Requester, Status, Priority */}
+            <div className="space-y-4">
+              {/* Requester */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-3">Pelapor</h3>
+                <div className="flex flex-col items-center gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 text-center">
+                  {selectedTicket.requester && (
+                    <>
+                      <img
+                        src={getAvatarUrl(selectedTicket.requester)}
+                        alt={selectedTicket.requester.name}
+                        className="h-16 w-16 rounded-full border-2 border-slate-300 dark:border-slate-600 object-cover"
+                      />
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-slate-100">{selectedTicket.requester.name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{selectedTicket.requester.department || "-"}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Status & Priority */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-2">Status</h3>
+                  <StatusBadge value={selectedTicket.status} />
+                </div>
+                <div>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400 mb-2">Priority</h3>
+                  <StatusBadge value={selectedTicket.priority} />
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1182,11 +1197,22 @@ export default function AdminDashboardPage() {
   );
 }
 
-function MetricCard({ label, value }) {
+function MetricCard({ label, value, icon: IconComponent }) {
   return (
-    <article className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
-      <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">{value}</p>
+    <article className="group rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:shadow-lg hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 hover:-translate-y-1">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            <AnimatedMetricValue value={value} />
+          </p>
+        </div>
+        {IconComponent && (
+          <div className="transition-all duration-300 ease-out group-hover:scale-110 group-hover:text-blue-500 dark:group-hover:text-blue-400">
+            <IconComponent size={40} className="text-slate-300 dark:text-slate-600 flex-shrink-0" strokeWidth={1.5} />
+          </div>
+        )}
+      </div>
     </article>
   );
 }

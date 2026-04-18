@@ -54,6 +54,7 @@ class UserResponse(BaseModel):
     department: Optional[str] = None  # Department name (manually set from relationship in CRUD)
     status: UserStatus
     is_active: bool
+    avatar_index: int = 0
     approved_by: Optional[int] = None
     approved_at: Optional[datetime] = None
     created_at: datetime
@@ -67,6 +68,23 @@ class UserRoleUpdate(BaseModel):
 
 class UserDepartmentUpdate(BaseModel):
     department_id: Optional[int] = None
+
+class UserAvatarUpdate(BaseModel):
+    avatar_index: int = Field(..., ge=0, le=9)
+
+class UserProfileUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    email: Optional[str] = Field(None)
+    
+    @field_validator("email")
+    @classmethod
+    def validate_email_format(cls, value):
+        if value is None:
+            return value
+        email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        if not re.match(email_regex, value):
+            raise ValueError("Format email tidak valid.")
+        return value
 
 class ApproveUserRequest(BaseModel):
     department_id: int

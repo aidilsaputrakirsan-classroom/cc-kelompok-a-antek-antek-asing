@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, Tags, Ticket, User, Users, Clock, Building2 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { getAvatarPath } from "../constants/avatars";
 import NotificationCenter from "../components/NotificationCenter";
 import ThemeToggle from "../components/ThemeToggle";
 import Button from "../components/ui/Button";
@@ -138,8 +139,7 @@ export default function AppShell() {
     return ["Dashboard"];
   }, [currentTab, location.pathname]);
 
-  const userInitial = (user?.name || "U").charAt(0).toUpperCase();
-  const userAvatar = user?.profile_picture || user?.profilePicture || user?.avatarUrl || "";
+  const userAvatar = getAvatarPath(user?.avatar_index);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -208,19 +208,34 @@ export default function AppShell() {
                     return location.pathname === "/admin/pending-users";
                   }
 
-                  // Overview dengan tab check
-                  if (item.to === "/admin") {
-                    return location.pathname === "/admin" && currentTab === "overview";
-                  }
-
-                  // Query string based items (All Tickets, Team Member, Categories)
-                  if (item.to.includes("?tab=")) {
-                    const expectedTab = new URLSearchParams(item.to.split("?")[1]).get("tab");
-                    return location.pathname === "/admin" && currentTab === expectedTab;
+                  // Admin routes
+                  if (location.pathname === "/admin") {
+                    // Admin overview
+                    if (item.to === "/admin") {
+                      return currentTab === "overview";
+                    }
+                    // Admin query string based items (All Tickets, Team Member, Categories)
+                    if (item.to.includes("?tab=")) {
+                      const expectedTab = new URLSearchParams(item.to.split("?")[1]).get("tab");
+                      return currentTab === expectedTab;
+                    }
                   }
 
                   // Employee routes
-                  return location.pathname.startsWith("/employee") && (item.tab ? currentTab === item.tab : true);
+                  if (location.pathname === "/employee") {
+                    // Employee dashboard
+                    if (item.to === "/employee") {
+                      return currentTab === "overview" || !location.search;
+                    }
+                    // Employee query string based items (My Ticket)
+                    if (item.to.includes("?tab=")) {
+                      const expectedTab = new URLSearchParams(item.to.split("?")[1]).get("tab");
+                      return currentTab === expectedTab;
+                    }
+                  }
+
+                  // Fallback for other routes
+                  return false;
                 };
 
                 return (
@@ -297,11 +312,7 @@ export default function AppShell() {
                   </span>
 
                   <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                    {userAvatar ? (
-                      <img src={userAvatar} alt="User profile" className="h-full w-full object-cover" />
-                    ) : (
-                      <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{userInitial}</span>
-                    )}
+                    <img src={userAvatar} alt="User profile" className="h-full w-full object-cover" />
                   </span>
 
                   <ChevronDown size={16} aria-hidden="true" className="hidden text-slate-400 dark:text-slate-500 md:block" />

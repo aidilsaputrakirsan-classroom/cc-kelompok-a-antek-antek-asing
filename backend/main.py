@@ -14,7 +14,7 @@ from database import engine, get_db, SessionLocal
 from models import Base, User, UserRole, UserStatus, UserDepartment, Department
 from schemas import (
     UserCreate, UserResponse, RegisterResponse, LoginRequest, TokenResponse,
-    UserRoleUpdate, UserDepartmentUpdate, ChangePasswordRequest,
+    UserRoleUpdate, UserDepartmentUpdate, UserAvatarUpdate, UserProfileUpdate, ChangePasswordRequest,
     ApproveUserRequest, RejectUserRequest, ApprovalLogResponse,
     DepartmentResponse, DepartmentCreate, DepartmentUpdate,
     CategoryCreate, CategoryUpdate, CategoryResponse,
@@ -30,7 +30,8 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Drop and recreate all tables for schema consistency
-    Base.metadata.drop_all(bind=engine)
+    # Uncomment the line below if you want to reset data on every startup (dev-only)
+    # Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     
     # Seed default data
@@ -281,6 +282,36 @@ def assign_department(
     if not updated:
         raise HTTPException(status_code=404, detail="User tidak ditemukan")
     return updated
+
+@app.put("/users/me/avatar", response_model=UserResponse)
+def update_avatar(
+    avatar_update: UserAvatarUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update user avatar index (0-9)"""
+    try:
+        updated = crud.update_user_avatar(db, current_user.id, avatar_update.avatar_index)
+        if not updated:
+            raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        return updated
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/users/me/profile", response_model=UserResponse)
+def update_profile(
+    profile_update: UserProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update user profile (name and/or email)"""
+    try:
+        updated = crud.update_user_profile(db, current_user.id, name=profile_update.name, email=profile_update.email)
+        if not updated:
+            raise HTTPException(status_code=404, detail="User tidak ditemukan")
+        return updated
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # === ADMIN: USER APPROVAL WORKFLOW ===
 @app.get("/admin/pending-users", dependencies=[Depends(allow_admins)])

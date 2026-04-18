@@ -1,19 +1,23 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { LockKeyhole, Save, UserCircle } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { userApi } from "../services/api";
+import { getAvatarPath } from "../constants/avatars";
 import Card from "../components/ui/Card";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
+import AvatarSelector from "../components/AvatarSelector";
 
 export default function ProfilePage() {
   const { user, updateLocalProfile } = useAuth();
   const [profileMessage, setProfileMessage] = useState("");
   const [passwordMessage, setPasswordMessage] = useState("");
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const [profileForm, setProfileForm] = useState({
     name: user?.name || "",
     email: user?.email || "",
-    avatarUrl: user?.profilePicture || user?.profile_picture || user?.avatarUrl || "",
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -22,19 +26,72 @@ export default function ProfilePage() {
     confirmPassword: "",
   });
 
-  const userInitial = useMemo(() => (profileForm.name || "U").charAt(0).toUpperCase(), [profileForm.name]);
+  const selectedAvatarIndex = user?.avatar_index ?? 0;
 
-  const onSaveProfile = (event) => {
+  const handleAvatarSelect = async (index) => {
+    try {
+      setAvatarLoading(true);
+      // Optimistic UI update
+      updateLocalProfile({ avatar_index: index });
+      // API call
+      const response = await userApi.updateUserAvatar(index);
+      // Ensure latest from server
+      updateLocalProfile({ avatar_index: response.avatar_index });
+      setProfileMessage("Avatar berhasil diperbarui!");
+      setTimeout(() => setProfileMessage(""), 3000);
+    } catch (err) {
+      console.error("Failed to update avatar:", err);
+      setProfileMessage(`Gagal mengubah avatar: ${err.detail || err.message}`);
+      // Revert optimistic update
+      updateLocalProfile({ avatar_index: user?.avatar_index ?? 0 });
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
+  const onSaveProfile = async (event) => {
     event.preventDefault();
 
-    updateLocalProfile({
-      name: profileForm.name,
-      email: profileForm.email,
-      profilePicture: profileForm.avatarUrl,
-      avatarUrl: profileForm.avatarUrl,
-    });
+    if (!profileForm.name || !profileForm.email) {
+      setProfileMessage("Nama dan email harus diisi!");
+      return;
+    }
 
-    setProfileMessage("Perubahan profil disimpan pada sesi saat ini.");
+    try {
+      setProfileLoading(true);
+      // Optimistic UI update
+      updateLocalProfile({
+        name: profileForm.name,
+        email: profileForm.email,
+      });
+      
+      // API call to persist changes
+      const response = await userApi.updateUserProfile(profileForm.name, profileForm.email);
+      
+      // Update with server response
+      updateLocalProfile({
+        name: response.name,
+        email: response.email,
+      });
+
+      setProfileMessage("✅ Profil berhasil diperbarui ke database!");
+      setTimeout(() => setProfileMessage(""), 3000);
+    } catch (err) {
+      console.error("Failed to update profile:", err);
+      setProfileMessage(`❌ Gagal menyimpan profil: ${err.detail || err.message}`);
+      // Revert optimistic update
+      updateLocalProfile({
+        name: user?.name || "",
+        email: user?.email || "",
+      });
+      // Revert form
+      setProfileForm({
+        name: user?.name || "",
+        email: user?.email || "",
+      });
+    } finally {
+      setProfileLoading(false);
+    }
   };
 
   const onPasswordSubmit = (event) => {
@@ -57,12 +114,12 @@ export default function ProfilePage() {
     <div className="space-y-5">
       <section className="rounded-2xl">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">Profile</h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Kelola nama, email, foto profil, dan password akun Anda.</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Kelola nama, email, avatar, dan password akun Anda.</p>
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
         <Card title="Informasi Profil" subtitle="Data ini digunakan di tampilan dashboard.">
-          <form className="space-y-3" onSubmit={onSaveProfile}>
+          <form className="space-y-4" onSubmit={onSaveProfile}>
             <Input
               label="Nama"
               required
@@ -80,17 +137,10 @@ export default function ProfilePage() {
               placeholder="nama@email.com"
             />
 
-            <Input
-              label="Profile Picture URL"
-              value={profileForm.avatarUrl}
-              onChange={(event) => setProfileForm((prev) => ({ ...prev, avatarUrl: event.target.value }))}
-              placeholder="https://..."
-            />
-
             <div className="pt-1">
-              <Button type="submit" className="inline-flex items-center gap-2">
+              <Button type="submit" disabled={profileLoading} className="inline-flex items-center gap-2">
                 <Save size={16} aria-hidden="true" />
-                Simpan Profil
+                {profileLoading ? "Menyimpan..." : "Simpan Profil"}
               </Button>
             </div>
 
@@ -102,21 +152,14 @@ export default function ProfilePage() {
           </form>
         </Card>
 
-        <Card title="Preview" subtitle="Tampilan avatar yang digunakan pada AppShell.">
-          <div className="flex flex-col items-center gap-3 py-2">
-            {profileForm.avatarUrl ? (
-              <img
-                src={profileForm.avatarUrl}
-                alt="Profile preview"
-                className="h-24 w-24 rounded-full border border-slate-200 dark:border-slate-700 object-cover"
-              />
-            ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-3xl font-semibold text-slate-700 dark:text-slate-300">
-                {userInitial}
-              </div>
-            )}
+        <Card title="Avatar" subtitle="Pilih avatar profil Anda dari galeri di bawah.">
+          <div className="flex flex-col items-center gap-4 py-2">
+            <img
+              src={getAvatarPath(selectedAvatarIndex)}
+              alt="Selected avatar"
+              className="h-24 w-24 rounded-full border-2 border-slate-200 dark:border-slate-700 object-cover"
+            />
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{profileForm.name || user?.name || "User"}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{profileForm.email || user?.email || "-"}</p>
             <div className="flex flex-wrap gap-2 items-center">
               <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs text-slate-600 dark:text-slate-400">
                 <UserCircle size={13} aria-hidden="true" />
@@ -131,6 +174,14 @@ export default function ProfilePage() {
           </div>
         </Card>
       </div>
+
+      <Card title="Pilih Avatar" subtitle="Klik untuk memilih avatar baru Anda.">
+        <AvatarSelector
+          selected={selectedAvatarIndex}
+          onSelect={handleAvatarSelect}
+          loading={avatarLoading}
+        />
+      </Card>
 
       <Card title="Ubah Password" subtitle="Bagian ini baru UI, backend belum diaktifkan.">
         <form className="grid gap-3 md:grid-cols-2" onSubmit={onPasswordSubmit}>

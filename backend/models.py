@@ -4,6 +4,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
 
+# --- CONSTANTS ---
+AVATAR_COUNT = 10
+DEFAULT_AVATAR_INDEX = 0
+
 
 class UserStatus(str, enum.Enum):
     pending = "PENDING"
@@ -63,6 +67,7 @@ class User(Base):
     must_change_password = Column(Boolean, default=False, nullable=False)
     approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
+    avatar_index = Column(Integer, default=DEFAULT_AVATAR_INDEX, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # relationships

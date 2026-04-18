@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { Ticket, Clock3, CheckCheck, FolderCheck } from "lucide-react";
 import { categoryApi, ticketApi } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { AnimatedMetricValue } from "../components/AnimatedMetricValue";
 import Card from "../components/ui/Card";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
@@ -109,10 +111,10 @@ export default function EmployeeDashboardPage() {
     const resolvedRate = total ? `${Math.round((resolved / total) * 100)}%` : "0%";
 
     return [
-      { label: "My Tickets", value: total },
-      { label: "In Progress", value: inProgress },
-      { label: "Response Time", value: "2.4h" },
-      { label: "Resolved", value: resolvedRate },
+      { label: "My Tickets", value: total, icon: Ticket },
+      { label: "In Progress", value: inProgress, icon: FolderCheck },
+      { label: "Response Time", value: "2.4h", icon: Clock3 },
+      { label: "Resolved", value: resolvedRate, icon: CheckCheck },
     ];
   }, [tickets]);
 
@@ -160,7 +162,7 @@ export default function EmployeeDashboardPage() {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)] md:p-5">
+      <section className="rounded-2xl">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
           {activeTab === "my-ticket" ? "My Ticket" : `Welcome ${user?.name || "Employee"}`}
         </h1>
@@ -173,7 +175,7 @@ export default function EmployeeDashboardPage() {
         {activeTab === "overview" ? (
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {summary.map((item) => (
-              <MetricCard key={item.label} label={item.label} value={item.value} />
+              <MetricCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
             ))}
           </div>
         ) : null}
@@ -192,7 +194,7 @@ export default function EmployeeDashboardPage() {
           <CategoryDonutChart values={categoryValues} />
         </div>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-[1.3fr_1.7fr]">
+        <div className="grid gap-4 xl:grid-cols-2">
           <Card title="Create Ticket" subtitle="Submit IT issue for support team.">
             <form className="space-y-3" onSubmit={onCreateTicket}>
               <Input
@@ -308,11 +310,22 @@ export default function EmployeeDashboardPage() {
   );
 }
 
-function MetricCard({ label, value }) {
+function MetricCard({ label, value, icon: IconComponent }) {
   return (
-    <article className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3">
-      <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-100">{value}</p>
+    <article className="group rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:shadow-lg hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 hover:-translate-y-1">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            <AnimatedMetricValue value={value} />
+          </p>
+        </div>
+        {IconComponent && (
+          <div className="transition-all duration-300 ease-out group-hover:scale-110 group-hover:text-blue-500 dark:group-hover:text-blue-400">
+            <IconComponent size={40} className="text-slate-300 dark:text-slate-600 flex-shrink-0" strokeWidth={1.5} />
+          </div>
+        )}
+      </div>
     </article>
   );
 }

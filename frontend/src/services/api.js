@@ -208,6 +208,15 @@ export const adminApi = {
   },
 };
 
+export const userApi = {
+  updateUserAvatar(avatarIndex) {
+    return request("/users/me/avatar", { method: "PUT", body: { avatar_index: avatarIndex } });
+  },
+  updateUserProfile(name, email) {
+    return request("/users/me/profile", { method: "PUT", body: { name, email } });
+  },
+};
+
 export async function checkHealth() {
   try {
     const data = await request("/health");
@@ -216,3 +225,4 @@ export async function checkHealth() {
     return false;
   }
 }
+
