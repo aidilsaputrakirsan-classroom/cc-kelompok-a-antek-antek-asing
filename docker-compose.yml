@@ -56,7 +56,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:8000
+        VITE_API_URL: https://api.antick-async.online
         VITE_SPLINE_SCENE_URL: https://prod.spline.design/JtAnJNdegVMirBAb/scene.splinecode
         VITE_SPLINE_SCENE_URL_REGISTER: https://prod.spline.design/D4gusWP1Rw4kgtey/scene.splinecode
     container_name: antick-async-frontend
@@ -66,6 +66,19 @@ services:
     networks:
       - cloudnet
     depends_on:
+      - backend
+
+
+# ==================== CLOUDFLARE TUNNEL ====================
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: antick-async-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    networks:
+      - cloudnet
+    depends_on:
+      - frontend
       - backend
 
 # ==================== VOLUMES ====================
