@@ -74,7 +74,9 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: antick-async-tunnel
     restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    env_file:
+      - .env
+    command: tunnel --no-autoupdate run
     networks:
       - cloudnet
     depends_on:

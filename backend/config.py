@@ -16,6 +16,14 @@ class Settings:
         self.SUPERADMIN_EMAIL = os.getenv("SUPERADMIN_EMAIL", "").strip()
         self.SUPERADMIN_PASSWORD = os.getenv("SUPERADMIN_PASSWORD", "").strip()
 
+        # SMTP CONFIGURATION
+        self.SMTP_HOST = os.getenv("SMTP_HOST", "smtp.hostinger.com").strip()
+        self.SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
+        self.SMTP_USER = os.getenv("SMTP_USER", "").strip()
+        self.SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
+        self.MAIL_FROM = os.getenv("MAIL_FROM", self.SMTP_USER).strip()
+        self.MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME", "Antick Async IT Support").strip()
+
         self._validate_settings()
 
     def _validate_settings(self):

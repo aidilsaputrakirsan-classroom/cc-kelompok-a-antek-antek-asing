@@ -9,6 +9,10 @@ AVATAR_COUNT = 10
 DEFAULT_AVATAR_INDEX = 0
 
 
+class OTPPurpose(str, enum.Enum):
+    register = "REGISTER"
+    reset_password = "RESET_PASSWORD"
+
 class UserStatus(str, enum.Enum):
     pending = "PENDING"
     active = "ACTIVE"
@@ -117,10 +121,21 @@ class ApprovalLog(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     action = Column(String(20), nullable=False)  # "APPROVED" or "REJECTED"
-    department_assigned = Column(SQLEnum(UserDepartment), nullable=True)
+    department_assigned = Column(Integer, ForeignKey("departments.id"), nullable=True)
     performed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     performed_at = Column(DateTime(timezone=True), server_default=func.now())
     notes = Column(Text, nullable=True)
 
     user = relationship("User", foreign_keys=[user_id])
     performer = relationship("User", foreign_keys=[performed_by])
+    department = relationship("Department")
+
+class OTP(Base):
+    """Table for storing One-Time Passwords for verification"""
+    __tablename__ = "otps"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    email = Column(String(255), nullable=False, index=True)
+    otp_code = Column(String(10), nullable=False)
+    purpose = Column(SQLEnum(OTPPurpose), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)

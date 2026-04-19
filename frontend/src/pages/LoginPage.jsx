@@ -19,7 +19,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [entered, setEntered] = useState(false);
 
@@ -140,16 +139,7 @@ export default function LoginPage() {
               </div>
             </label>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 text-sm transition-colors duration-500">
-              <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400 transition-colors duration-500">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 transition-colors duration-300"
-                />
-                Remember me for 30 days
-              </label>
+            <div className="flex justify-end text-sm transition-colors duration-500">
               <button type="button" className="font-medium text-[#2592ea] hover:text-blue-700 dark:hover:text-blue-400 transition-colors duration-300">
                 Forgot password?
               </button>
