@@ -700,7 +700,7 @@ export default function AdminDashboardPage() {
                   {filteredTickets.map((ticket) => (
                     <tr key={ticket.id} className="border-b border-slate-100 dark:border-slate-800 dark:hover:bg-slate-800/40 transition align-middle">
                       <td className="py-2 pr-4">
-                        <p className="font-medium text-slate-800">{ticket.title}</p>
+                        <p className="font-medium text-slate-800 dark:text-slate-100">{ticket.title}</p>
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400"></p>
                         <div className="mt-1 text-xs">
                           <UserInline person={ticket.requester} fallback="-" />

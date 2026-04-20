@@ -17,7 +17,7 @@ RUN npm run build
 # Stage 2: Serving dengan Nginx
 FROM nginx:stable-alpine
 COPY --from=build-stage /app/dist /usr/share/nginx/html
-
+COPY --from=build-stage /app/public/avatars /usr/share/nginx/html/avatars
 
 # --- TAMBAHKAN 1 BARIS INI BOSS! ---
 # Timpa konfigurasi bawaan Nginx dengan konfigurasi cerdas buatan kita

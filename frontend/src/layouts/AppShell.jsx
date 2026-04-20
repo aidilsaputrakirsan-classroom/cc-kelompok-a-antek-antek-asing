@@ -183,20 +183,18 @@ export default function AppShell() {
           </button>
 
           <div className="flex h-full flex-col">
-            <div className="mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
-              <div className="flex min-w-0 items-center gap-1">
-                <img
-                  src="/image/logo_antick_async.png"
-                  alt="Antick Async Logo"
-                  className="h-10 w-20 rounded-md object-contain"
-                />
-                <div
-                  className={`overflow-hidden transition-all duration-300 ${
-                    sidebarCollapsed ? "max-w-0 opacity-0" : "max-w-[200px] opacity-100"
-                  }`}
-                >
-                  <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">Antick</p>
-                </div>
+            <div className="mb-6 flex items-center gap-3 rounded-xl px-3 py-2 border-b-2 border-blue-400 dark:border-blue-400/80 pb-4">
+              <img
+                src="/image/logo_antick_async.png"
+                alt="Antick Async Logo"
+                className="h-12 w-12 shrink-0 rounded-lg object-contain"
+              />
+              <div
+                className={`overflow-hidden transition-all duration-300 min-w-0 ${
+                  sidebarCollapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+                }`}
+              >
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">Antick</h1>
               </div>
             </div>
 
