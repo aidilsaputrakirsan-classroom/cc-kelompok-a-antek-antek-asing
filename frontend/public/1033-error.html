@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error 1033 | Koneksi ke Server Terputus</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Antick Async Premium Color Palette */
+            --bg-color-dark: #0f172a;
+            --bg-color-light: #1e293b;
+            --brand-blue: #2592ea;
+            --brand-blue-hover: #1a6fc4;
+            --brand-blue-glow: rgba(37, 146, 234, 0.4);
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-tertiary: #64748b;
+            
+            --glass-bg: rgba(30, 41, 59, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color-dark);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            color: var(--text-primary);
+        }
+
+        /* Abstract Ambient Background Effects */
+        .ambient-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.5;
+            z-index: 0;
+            animation: pulse-blob 8s infinite alternate ease-in-out;
+        }
+
+        .blob-1 {
+            width: 40vw;
+            height: 40vw;
+            background: linear-gradient(135deg, var(--brand-blue-glow), transparent);
+            top: -10vw;
+            left: -10vw;
+        }
+
+        .blob-2 {
+            width: 30vw;
+            height: 30vw;
+            background: linear-gradient(135deg, rgba(148, 163, 184, 0.1), transparent);
+            bottom: -5vw;
+            right: -5vw;
+            animation-delay: -4s;
+        }
+
+        @keyframes pulse-blob {
+            0% { transform: scale(1) translate(0, 0); opacity: 0.3; }
+            50% { transform: scale(1.1) translate(2vw, 2vw); opacity: 0.5; }
+            100% { transform: scale(0.95) translate(-2vw, -1vw); opacity: 0.4; }
+        }
+
+        /* Container & Glassmorphism */
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 580px;
+            padding: 3rem;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 var(--glass-highlight);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fade-in-up {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Server Illustration & Micro-Animations */
+        .illustration-wrapper {
+            margin-bottom: 2rem;
+            position: relative;
+            width: 140px;
+            height: 140px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .server-svg-glow {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            background: var(--brand-blue);
+            filter: blur(40px);
+            opacity: 0.2;
+            border-radius: 50%;
+            top: 10%;
+            animation: pulse-glow 3s ease-in-out infinite alternate;
+        }
+        
+        @keyframes pulse-glow {
+            from { opacity: 0.1; transform: scale(0.9); }
+            to { opacity: 0.3; transform: scale(1.1); }
+        }
+
+        .server-svg {
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+
+        /* CSS within SVG for pulsing lights */
+        .led-red { fill: #ef4444; animation: flash-red 1.5s infinite; }
+        .led-blue { fill: var(--brand-blue); animation: flash-blue 2s infinite alternate; }
+        .led-dim { fill: var(--text-tertiary); }
+
+        @keyframes flash-red {
+            0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.8)); }
+            50% { opacity: 0.4; filter: drop-shadow(0 0 0 rgba(239, 68, 68, 0)); }
+        }
+        @keyframes flash-blue {
+            0% { opacity: 0.3; filter: drop-shadow(0 0 0 rgba(37, 146, 234, 0)); }
+            100% { opacity: 1; filter: drop-shadow(0 0 6px rgba(37, 146, 234, 0.8)); }
+        }
+
+        /* Typography */
+        .error-code {
+            font-size: 0.875rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            color: var(--brand-blue);
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: rgba(37, 146, 234, 0.1);
+            border: 1px solid rgba(37, 146, 234, 0.2);
+            border-radius: 9999px;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            letter-spacing: -0.025em;
+        }
+
+        p {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-weight: 400;
+        }
+
+        /* Action Button */
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.875rem 2rem;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #ffffff;
+            background: var(--brand-blue);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px 0 rgba(37, 146, 234, 0.39);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-button:hover {
+            background: var(--brand-blue-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px 0 rgba(37, 146, 234, 0.45);
+        }
+
+        .action-button:active {
+            transform: translateY(0);
+        }
+        
+        .action-button .icon {
+            margin-right: 8px;
+            transition: transform 0.3s ease;
+        }
+
+        .action-button:hover .icon {
+            transform: rotate(180deg);
+        }
+
+        /* Additional Decoration */
+        .decoration-dots {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background-image: radial-gradient(var(--text-tertiary) 1px, transparent 1px);
+            background-size: 10px 10px;
+            opacity: 0.15;
+            z-index: 1;
+        }
+
+        .dots-top { top: 2rem; right: 2rem; }
+        .dots-bottom { bottom: 2rem; left: 2rem; }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 2.5rem 1.5rem;
+                width: 95%;
+            }
+            h1 {
+                font-size: 1.5rem;
+            }
+            .illustration-wrapper {
+                width: 110px;
+                height: 110px;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Ambient Backgrounds -->
+    <div class="ambient-blob blob-1"></div>
+    <div class="ambient-blob blob-2"></div>
+    
+    <div class="decoration-dots dots-top"></div>
+    <div class="decoration-dots dots-bottom"></div>
+
+    <div class="container">
+        
+        <div class="illustration-wrapper">
+            <div class="server-svg-glow"></div>
+            <!-- Isometric/Modern Server SVG -->
+            <svg class="server-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Base / Shadows -->
+                <ellipse cx="100" cy="170" rx="60" ry="15" fill="rgba(0,0,0,0.5)" filter="blur(8px)"/>
+                
+                <!-- Server Rack Bottom -->
+                <path d="M40 140 C40 145 50 150 100 150 C150 150 160 145 160 140 L160 110 C160 115 150 120 100 120 C50 120 40 115 40 110 Z" fill="#1e293b"/>
+                <path d="M40 110 C40 115 50 120 100 120 C150 120 160 115 160 110 C160 105 150 100 100 100 C50 100 40 105 40 110" fill="#2d3748"/>
+                <!-- Rack Bottom LED -->
+                <circle cx="140" cy="130" r="3" class="led-red" />
+                <rect x="55" y="128" width="50" height="4" rx="2" fill="#0f172a" />
+                
+                <!-- Server Rack Middle -->
+                <path d="M40 100 C40 105 50 110 100 110 C150 110 160 105 160 100 L160 70 C160 75 150 80 100 80 C50 80 40 75 40 70 Z" fill="#232e42"/>
+                <path d="M40 70 C40 75 50 80 100 80 C150 80 160 75 160 70 C160 65 150 60 100 60 C50 60 40 65 40 70" fill="#334155"/>
+                <!-- Rack Middle LEDs -->
+                <circle cx="130" cy="90" r="3" class="led-blue" />
+                <circle cx="140" cy="90" r="3" class="led-dim" />
+                <rect x="55" y="88" width="40" height="4" rx="2" fill="#0f172a" />
+                <rect x="100" y="88" width="15" height="4" rx="2" fill="#0f172a" />
+
+                <!-- Server Rack Top -->
+                <path d="M40 60 C40 65 50 70 100 70 C150 70 160 65 160 60 L160 30 C160 35 150 40 100 40 C50 40 40 35 40 30 Z" fill="#2d3748"/>
+                <path d="M40 30 C40 35 50 40 100 40 C150 40 160 35 160 30 C160 25 150 20 100 20 C50 20 40 25 40 30" fill="#475569"/>
+                <!-- Rack Top Details -->
+                <rect x="55" y="48" width="60" height="4" rx="2" fill="#0f172a" />
+                <circle cx="140" cy="50" r="3" class="led-blue" />
+                
+                <!-- Cloud/Data Flow Elements floating above -->
+                <path d="M90 10 L85 25 M110 5 L110 25 L115 15" stroke="var(--brand-blue)" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+            </svg>
+        </div>
+
+        <span class="error-code">Error 1033</span>
+        
+        <h1>Koneksi ke Server Terputus</h1>
+        
+        <p>
+            Server Antick Async saat ini sedang offline, dimatikan, atau mengalami gangguan jaringan. 
+            Tim IT Support kami akan segera menyalakannya kembali. Silakan refresh halaman ini dalam beberapa menit.
+        </p>
+
+        <button onclick="window.location.reload(true)" class="action-button">
+            <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+            </svg>
+            Refresh Halaman
+        </button>
+    </div>
+
+</body>
+</html>
