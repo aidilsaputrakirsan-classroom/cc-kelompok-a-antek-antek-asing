@@ -2,7 +2,7 @@ import re
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, List
 from datetime import datetime
-from models import UserRole, UserStatus, TicketStatus, TicketPriority, UserDepartment
+from models import UserRole, UserStatus, TicketStatus, TicketPriority, UserDepartment, NotificationType
 
 # --- Department ---
 class DepartmentResponse(BaseModel):
@@ -186,3 +186,22 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+# --- Notifications ---
+class NotificationResponse(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    message: str
+    type: NotificationType
+    reference_id: Optional[int] = None
+    is_read: bool
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class NotificationListResponse(BaseModel):
+    unread_count: int
+    total: int
+    items: List[NotificationResponse]

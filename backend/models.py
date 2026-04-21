@@ -49,6 +49,11 @@ class TicketPriority(str, enum.Enum):
     high = "high"
     urgent = "urgent"
 
+class NotificationType(str, enum.Enum):
+    user_pending = "user_pending"
+    new_ticket = "new_ticket"
+    ticket_resolved = "ticket_resolved"
+
 class Department(Base):
     __tablename__ = "departments"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -79,6 +84,7 @@ class User(Base):
     department_rel = relationship("Department", back_populates="users")
     tickets_requested = relationship("Ticket", foreign_keys="[Ticket.requester_id]", back_populates="requester")
     tickets_assigned = relationship("Ticket", foreign_keys="[Ticket.assignee_id]", back_populates="assignee")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     
     @property
     def department(self):
@@ -139,3 +145,16 @@ class OTP(Base):
     purpose = Column(SQLEnum(OTPPurpose), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=False)
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    type = Column(SQLEnum(NotificationType), nullable=False)
+    reference_id = Column(Integer, nullable=True) # ID references based on type
+    is_read = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="notifications")

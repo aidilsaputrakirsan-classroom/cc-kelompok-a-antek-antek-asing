@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import Optional
-from models import User, Category, Ticket, UserRole, UserStatus, UserDepartment, TicketStatus, ApprovalLog, Department, AVATAR_COUNT
+from models import User, Category, Ticket, UserRole, UserStatus, UserDepartment, TicketStatus, ApprovalLog, Department, AVATAR_COUNT, Notification, NotificationType
 from schemas import (
     UserCreate, CategoryCreate, CategoryUpdate, TicketCreate,
     TicketUpdateEmployee, TicketUpdateAdmin, ApproveUserRequest, RejectUserRequest
@@ -17,6 +17,45 @@ def validate_avatar_index(index: int):
         raise ValueError("Avatar index must be integer")
     if index < 0 or index >= AVATAR_COUNT:
         raise ValueError(f"Invalid avatar index. Must be between 0 and {AVATAR_COUNT - 1}")
+
+# --- NOTIFICATIONS ---
+def create_notification(db: Session, user_id: int, title: str, message: str, notification_type: NotificationType, reference_id: Optional[int] = None) -> Notification:
+    notif = Notification(
+        user_id=user_id,
+        title=title,
+        message=message,
+        type=notification_type,
+        reference_id=reference_id
+    )
+    db.add(notif)
+    db.commit()
+    db.refresh(notif)
+    return notif
+
+def get_user_notifications(db: Session, user_id: int, skip: int = 0, limit: int = 20):
+    query = db.query(Notification).filter(Notification.user_id == user_id)
+    total = query.count()
+    unread_count = query.filter(Notification.is_read == False).count()
+    items = query.order_by(Notification.created_at.desc()).offset(skip).limit(limit).all()
+    return {"total": total, "unread_count": unread_count, "items": items}
+
+def mark_notification_read(db: Session, notification_id: int, user_id: int) -> bool:
+    notif = db.query(Notification).filter(Notification.id == notification_id, Notification.user_id == user_id).first()
+    if not notif:
+        return False
+    notif.is_read = True
+    db.commit()
+    return True
+
+def mark_all_notifications_read(db: Session, user_id: int) -> int:
+    result = db.query(Notification).filter(Notification.user_id == user_id, Notification.is_read == False).update({"is_read": True})
+    db.commit()
+    return result
+
+def resolve_related_notifications(db: Session, notification_type: NotificationType, reference_id: int):
+    """Mark all notifications of specific type and reference as read"""
+    db.query(Notification).filter(Notification.type == notification_type, Notification.reference_id == reference_id, Notification.is_read == False).update({"is_read": True})
+    db.commit()
 
 # --- USER ---
 def create_user(db: Session, user_data: UserCreate, default_role: UserRole = UserRole.employee, auto_active: bool = False) -> User:
@@ -34,6 +73,12 @@ def create_user(db: Session, user_data: UserCreate, default_role: UserRole = Use
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    
+    if not auto_active:
+        superadmins = db.query(User).filter(User.role == UserRole.superadmin, User.is_active == True).all()
+        for sa in superadmins:
+            create_notification(db, sa.id, "Pending User Approval", f"New user {user_data.name} is waiting for approval.", NotificationType.user_pending, db_user.id)
+            
     return db_user
 
 def authenticate_user(db: Session, email: str, password: str) -> User | None:
@@ -171,6 +216,10 @@ def approve_user(db: Session, user_id: int, data: ApproveUserRequest, admin_id: 
         performed_at=now,
     )
     db.add(log)
+    
+    # Dismiss notification
+    resolve_related_notifications(db, NotificationType.user_pending, user_id)
+    
     db.commit()
     db.refresh(db_user)
     return db_user
@@ -196,6 +245,10 @@ def reject_user(db: Session, user_id: int, admin_id: int, notes: Optional[str] =
         notes=notes,
     )
     db.add(log)
+    
+    # Dismiss notification
+    resolve_related_notifications(db, NotificationType.user_pending, user_id)
+    
     db.commit()
     db.refresh(db_user)
     return db_user
@@ -292,6 +345,12 @@ def create_ticket(db: Session, ticket_data: TicketCreate, requester_id: int) -> 
     db.add(db_ticket)
     db.commit()
     db.refresh(db_ticket)
+    
+    # Notify Admins and IT Employees
+    notifiers = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.it_employee]), User.is_active == True).all()
+    for n_user in notifiers:
+        create_notification(db, n_user.id, "New Ticket Created", f"Ticket '{ticket_data.title}' needs attention.", NotificationType.new_ticket, db_ticket.id)
+        
     return db_ticket
 
 def get_tickets(db: Session, skip: int = 0, limit: int = 20, requester_id: Optional[int] = None):
@@ -331,6 +390,12 @@ def update_ticket_admin(db: Session, ticket_id: int, ticket_data: TicketUpdateAd
         setattr(db_ticket, field, value)
     db.commit()
     db.refresh(db_ticket)
+    
+    # Check if resolved to notify owner
+    if ticket_data.status in [TicketStatus.resolved, TicketStatus.closed]:
+        resolve_related_notifications(db, NotificationType.new_ticket, ticket_id)
+        create_notification(db, db_ticket.requester_id, "Ticket Resolved", f"Your ticket '{db_ticket.title}' has been fixed/resolved.", NotificationType.ticket_resolved, db_ticket.id)
+
     return db_ticket
 
 def delete_ticket(db: Session, ticket_id: int) -> bool:

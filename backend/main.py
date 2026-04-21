@@ -18,7 +18,8 @@ from schemas import (
     ApproveUserRequest, RejectUserRequest, ApprovalLogResponse,
     DepartmentResponse, DepartmentCreate, DepartmentUpdate,
     CategoryCreate, CategoryUpdate, CategoryResponse,
-    TicketCreate, TicketUpdateEmployee, TicketUpdateAdmin, TicketResponse, TicketListResponse
+    TicketCreate, TicketUpdateEmployee, TicketUpdateAdmin, TicketResponse, TicketListResponse,
+    NotificationResponse, NotificationListResponse
 )
 from fastapi.security.utils import get_authorization_scheme_param
 from auth import create_access_token, get_current_user, get_current_unverified_user, RoleChecker, hash_password, verify_password, oauth2_scheme, token_blacklist, decode_token
@@ -539,6 +540,33 @@ def delete_ticket(ticket_id: int, db: Session = Depends(get_db)):
     if not success:
         raise HTTPException(status_code=404, detail="Tiket tidak ditemukan")
     return None
+
+# === NOTIFICATIONS ===
+@app.get("/notifications", response_model=NotificationListResponse)
+def get_notifications(
+    skip: int = Query(0, ge=0), limit: int = Query(20, ge=1),
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    """Mendapatkan daftar notifikasi paginasi untuk pengguna saat ini"""
+    return crud.get_user_notifications(db, current_user.id, skip, limit)
+
+@app.put("/notifications/{notif_id}/read")
+def read_notification(
+    notif_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    """Menandai satu notifikasi sebagai telah dibaca"""
+    success = crud.mark_notification_read(db, notif_id, current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Notifikasi tidak ditemukan")
+    return {"message": "Notifikasi ditandai sudah dibaca"}
+
+@app.put("/notifications/read-all")
+def read_all_notifications(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
+    """Menandai semua notifikasi pengguna saat ini sebagai telah dibaca"""
+    updated_count = crud.mark_all_notifications_read(db, current_user.id)
+    return {"message": f"{updated_count} notifikasi ditandai sudah dibaca"}
 
 # === DASHBOARD ===
 @app.get("/dashboard", dependencies=[Depends(allow_it_and_admins)])
