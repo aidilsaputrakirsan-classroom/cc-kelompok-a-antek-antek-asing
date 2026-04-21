@@ -20,6 +20,18 @@ export default function Modal({ open, title, children, onClose, onConfirm, confi
           </button>
         </div>
         <div className="text-slate-700 dark:text-slate-300">{children}</div>
+        {onConfirm && (
+          <div className="mt-4 flex gap-2 justify-end">
+            {showCancel && (
+              <Button type="button" variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+            )}
+            <Button type="button" variant="primary" onClick={onConfirm}>
+              {confirmText}
+            </Button>
+          </div>
+        )}
       </div>
     </div>,
     document.body
