@@ -232,3 +232,31 @@ export async function checkHealth() {
   }
 }
 
+// Generic API client for other services
+export const apiClient = {
+  get(path, options = {}) {
+    const { params, ...rest } = options;
+    let url = path;
+    if (params) {
+      const query = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        query.append(key, value);
+      });
+      url = `${path}?${query.toString()}`;
+    }
+    return request(url, { method: "GET", ...rest });
+  },
+  post(path, body, options = {}) {
+    return request(path, { method: "POST", body, ...options });
+  },
+  put(path, body, options = {}) {
+    return request(path, { method: "PUT", body, ...options });
+  },
+  patch(path, body, options = {}) {
+    return request(path, { method: "PATCH", body, ...options });
+  },
+  delete(path, options = {}) {
+    return request(path, { method: "DELETE", ...options });
+  },
+};
+

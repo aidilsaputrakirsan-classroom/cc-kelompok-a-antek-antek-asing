@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { PendingUsersProvider } from "./context/PendingUsersContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { useToast } from "./context/useToast";
+import ToastContainer from "./components/ToastContainer";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
 import AppShell from "./layouts/AppShell";
@@ -65,13 +68,24 @@ const router = createBrowserRouter([
   { path: "*", element: <Navigate to="/" replace /> },
 ]);
 
+function AppWithToast() {
+  const { toasts, removeToast } = useToast();
+
+  return (
+    <>
+      <RouterProvider router={router} />
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
+    </>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <NotificationProvider>
           <PendingUsersProvider>
-            <RouterProvider router={router} />
+            <AppWithToast />
           </PendingUsersProvider>
         </NotificationProvider>
       </AuthProvider>

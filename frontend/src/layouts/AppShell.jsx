@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, Tags, Ticket, User, Users, Clock, Building2 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { getAvatarPath } from "../constants/avatars";
-import NotificationCenter from "../components/NotificationCenter";
+import NotificationBell from "../components/NotificationBell";
 import ThemeToggle from "../components/ThemeToggle";
 import Button from "../components/ui/Button";
 
@@ -292,7 +292,7 @@ export default function AppShell() {
 
               <div className="relative ml-auto flex items-center gap-3" ref={profileMenuRef}>
                 <ThemeToggle />
-                <NotificationCenter />
+                <NotificationBell />
 
                 <button
                   type="button"
