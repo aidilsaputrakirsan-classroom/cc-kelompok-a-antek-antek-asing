@@ -57,7 +57,7 @@ services:
       dockerfile: Dockerfile
       args:
         # VITE_API_URL: https://api.antick-async.online
-        VITE_API_URL: http://localhost:8000 # ini untuk development lokal, jangan lupa ganti ke URL produksi saat deploy
+        VITE_API_URL: http://localhost:8000  #ini untuk development lokal, jangan lupa ganti ke URL produksi saat deploy
         VITE_SPLINE_SCENE_URL: https://prod.spline.design/JtAnJNdegVMirBAb/scene.splinecode
         VITE_SPLINE_SCENE_URL_REGISTER: https://prod.spline.design/D4gusWP1Rw4kgtey/scene.splinecode
     container_name: antick-async-frontend

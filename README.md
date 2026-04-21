@@ -6,6 +6,67 @@ Antick Async merupakan sistem internal helpdesk berbasis cloud yang dirancang un
 
 Setiap tiket terdapat waktu pembuatan hingga penyelesaian serta seluruh aktivitas kerja yang akan dicatat dan dimonitoring secara sistematis. Dengan adanya sistem Antick Async, perusahaan dapat meningkatkan transparansi operasional, serta memastikan setiap tugas akan terdokumentasi secara terpusat sehingga supervisor dapat memonitor produktivitas harian serta mengevaluasi pencapain KPI secara lebih objektif dan berbasis data. 
 
+---
+## 👥 Role Sistem
+
+Sistem memiliki 4 role utama:
+
+1. Employee (Requester / User)
+ 
+- Membuat tiket permintaan
+- Mengedit tiket sendiri
+- Melihat detail & history tiket
+Menerima notifikasi status tiket
+2. IT Support Employee (Resolver)
+- Menyelesaikan tiket
+- Mengubah status pengerjaan tiket
+- Menentukan siapa yang menyelesaikan tiket
+- Update progress ticket
+3. Admin
+- Approval user
+- Mengelola departemen user
+- Menolak / menerima registrasi user
+- Monitoring dashboard approval
+4. Super Admin
+- Semua akses Admin
+-Mengubah role user
+- Mengatur departemen user serta Approval tingkat akhir
+
+---
+## 🚀 Fitur Utama Sistem
+
+1. Authentication & Approval System
+- Login user hanya bisa setelah approval admin/superadmin
+- Validasi email saat register
+- Validasi password saat register
+- Notifikasi status approval (accept/reject)
+- Email rejection notification
+
+2. Ticket Management
+- Employee membuat tiket
+- Employee dapat edit tiket
+- Detail tiket lengkap
+- History status pengerjaan tiket
+- Status pengerjaan dapat diubah IT Support
+3. Notification System
+- Notifikasi permintaan user baru
+- Notifikasi approval/reject user
+- Notifikasi update status tiket
+- Notifikasi user kembali aktif
+4. Admin Management
+- Approval dashboard user (accept/reject)
+- Manajemen departemen user
+- Role management (superadmin)
+- penanda status approval user
+5. User Profile
+- User dapat ubah avatar
+- User profile management
+- User dapat mengubah kata sandi
+5. Dashboard & Monitoring
+- Dashboard waiting approval
+- Monitoring tiket
+- Filter status pengerjaan tiket
+
 
 ## Tim
 
@@ -384,60 +445,12 @@ Hasil testing pada modul 4 dapat dilihat di folder berikut:
 | 2      | REST API + Database       | ✅ |
 | 3      | React Frontend            | ✅ |
 | 4      | Full-Stack Integration    | ✅ |
-| 5–7    | Docker & Compose          | ⬜ |
-| 8      | UTS Demo                  | ⬜ |
+| 5–7    | Docker & Compose          | ✅ |
+| 8      | UTS Demo                  | ✅ |
 | 9–11   | CI/CD Pipeline            | ⬜ |
 | 12–14  | Microservices             | ⬜ |
 | 15–16  | Final & UAS               | ⬜ |
 
-
-📁 Project Structure
-```
-CC-KELOMPOK-A-ANTEK-ANTEK-ASING
-│
-├── backend
-│   ├── __pycache__
-│   ├── env
-│   ├── .env.example
-│   ├── crud.py
-│   ├── database.py
-│   ├── main.py
-│   ├── models.py
-│   ├── requirements.txt
-│   ├── schemas.py
-│   └── test.db
-│
-├── docs
-│   ├── assets
-│   │   └── pictures
-│   │       ├── commit.png
-│   │       └── hasil.png
-│   │
-│   ├── member-Muhammad-Athala-Romero.md
-│   ├── member-Muhammad-Bagas-Setiawan.md
-│   ├── member-Muhammad-Fikri-Haikal.md
-│   ├── member-Nanda-Aulia-Putri.md
-│   └── test.md
-│
-├── frontend
-│   ├── .vite
-│   │   └── deps
-│   │       ├── _metadata.json
-│   │       └── package.json
-│   │
-│   ├── node_modules
-│   ├── public
-│   ├── src
-│   ├── .gitignore
-│   ├── eslint.config.js
-│   ├── index.html
-│   ├── package-lock.json
-│   ├── package.json
-│   ├── README.md
-│   └── vite.config.js
-│
-└── .gitignore
-```
 
 
 ## 🐳 Docker Deployment (Modul 5)
@@ -508,3 +521,72 @@ Ketiga container ini saling terhubung dalam satu Docker network, sehingga dapat 
 - Port telah dikonfigurasi untuk masing-masing service
 - Database menggunakan volume (pgdata) untuk menjaga data
 - Environment variables digunakan untuk konfigurasi koneksi dan keamanan
+
+📁 Project Structure
+```
+CC-KELOMPOK-A-ANTEK-ANTEK-ASING
+│
+├── backend
+│   ├── __pycache__
+│   ├── env
+│   ├── .env
+│   ├── .env.example
+│   ├── .dockerignore
+│   ├── Dockerfile
+│   ├── crud.py
+│   ├── database.py
+│   ├── main.py
+│   ├── models.py
+│   ├── requirements.txt
+│   ├── schemas.py
+│   └── test.db
+│
+├── docs
+│   ├── assets
+│   │   └── images
+│   │       ├── week1
+│   │       ├── week2
+│   │       └── week3
+│   │
+│   ├── docker-compose.yml
+│   ├── docker-compose.prod.yml
+│   ├── docker-compose.prod.yaml
+│   ├── member-Muhammad-Athala-Romero.md
+│   ├── member-Muhammad-Bagas-Setiawan.md
+│   ├── member-Muhammad-Fikri-Haikal.md
+│   ├── member-Nanda-Aulia-Putri.md
+│   ├── NOTIFICATION_LIFECYCLE.md
+│   ├── setup.md
+│   └── test.md
+│
+├── frontend
+│   ├── .vite
+│   │   └── deps
+│   │       ├── _metadata.json
+│   │       └── package.json
+│   │
+│   ├── node_modules
+│   ├── public
+│   ├── src
+│   ├── .dockerignore
+│   ├── .env
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── Dockerfile
+│   ├── index.html
+│   ├── nginx.conf
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── README.md
+│   ├── tailwind.config.js
+│   └── vite.config.js
+│
+├── scripts
+│
+├── .gitignore
+├── docker.sh
+├── wait-for-it.sh
+├── Makefile
+└── README.md
+```
