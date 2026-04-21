@@ -84,7 +84,7 @@ class UserProfileUpdate(BaseModel):
         email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
         if not re.match(email_regex, value):
             raise ValueError("Format email tidak valid.")
-        return value
+        return value.lower()
 
 class ApproveUserRequest(BaseModel):
     department_id: int

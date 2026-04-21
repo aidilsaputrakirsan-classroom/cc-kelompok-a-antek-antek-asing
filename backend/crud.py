@@ -64,11 +64,21 @@ def update_user_role(db: Session, user_id: int, new_role: UserRole) -> User | No
     db.refresh(db_user)
     return db_user
 
-def update_user_department(db: Session, user_id: int, department_id: int) -> User | None:
+def update_user_department(db: Session, user_id: int, new_department_id: int) -> User | None:
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
         return None
-    db_user.department_id = department_id
+    db_user.department_id = new_department_id
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def update_user_profile(db: Session, user_id: int, update_data: dict) -> User | None:
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return None
+    for field, value in update_data.items():
+        setattr(db_user, field, value)
     db.commit()
     db.refresh(db_user)
     return db_user

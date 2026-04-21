@@ -113,6 +113,12 @@ export const authApi = {
   me() {
     return request("/auth/me");
   },
+  changePassword(oldPassword, newPassword) {
+    return request("/auth/change-password", {
+      method: "POST",
+      body: { old_password: oldPassword, new_password: newPassword },
+    });
+  },
 };
 
 export const ticketApi = {
@@ -213,7 +219,7 @@ export const userApi = {
     return request("/users/me/avatar", { method: "PUT", body: { avatar_index: avatarIndex } });
   },
   updateUserProfile(name, email) {
-    return request("/users/me/profile", { method: "PUT", body: { name, email } });
+    return request("/auth/me", { method: "PUT", body: { name, email } });
   },
 };
 

@@ -298,7 +298,7 @@ def update_avatar(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.put("/users/me/profile", response_model=UserResponse)
+@app.put("/auth/me", response_model=UserResponse)
 def update_profile(
     profile_update: UserProfileUpdate,
     db: Session = Depends(get_db),
@@ -306,12 +306,18 @@ def update_profile(
 ):
     """Update user profile (name and/or email)"""
     try:
-        updated = crud.update_user_profile(db, current_user.id, name=profile_update.name, email=profile_update.email)
+        update_data = profile_update.model_dump(exclude_unset=True)
+        if not update_data:
+            raise HTTPException(status_code=400, detail="Tidak ada data yang diubah")
+            
+        updated = crud.update_user_profile(db, current_user.id, update_data)
         if not updated:
             raise HTTPException(status_code=404, detail="User tidak ditemukan")
         return updated
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except IntegrityError:
+        raise HTTPException(status_code=409, detail="Email sudah digunakan oleh pengguna lain.")
 
 # === ADMIN: USER APPROVAL WORKFLOW ===
 @app.get("/admin/pending-users", dependencies=[Depends(allow_admins)])

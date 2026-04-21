@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { LockKeyhole, Save, UserCircle } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import { userApi } from "../services/api";
+import { userApi, authApi } from "../services/api";
 import { getAvatarPath } from "../constants/avatars";
 import Card from "../components/ui/Card";
 import Input from "../components/ui/Input";
@@ -14,6 +14,7 @@ export default function ProfilePage() {
   const [passwordMessage, setPasswordMessage] = useState("");
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const [profileForm, setProfileForm] = useState({
     name: user?.name || "",
@@ -94,7 +95,7 @@ export default function ProfilePage() {
     }
   };
 
-  const onPasswordSubmit = (event) => {
+  const onPasswordSubmit = async (event) => {
     event.preventDefault();
 
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
@@ -107,7 +108,30 @@ export default function ProfilePage() {
       return;
     }
 
-    setPasswordMessage("UI ubah password sudah tersedia. Proses backend belum diaktifkan.");
+    try {
+      setPasswordLoading(true);
+      const response = await authApi.changePassword(
+        passwordForm.currentPassword,
+        passwordForm.newPassword
+      );
+      
+      setPasswordMessage(`✅ ${response.message || "Password berhasil diubah."} Sesi direfresh dalam 3 detik.`);
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+
+      // Token invalidates, triggering logout
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+    } catch (err) {
+      console.error("Failed to change password:", err);
+      setPasswordMessage(`❌ Gagal: ${err.detail || err.message}`);
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   return (
@@ -215,9 +239,9 @@ export default function ProfilePage() {
           />
 
           <div className="md:col-span-2">
-            <Button type="submit" className="inline-flex items-center gap-2">
+            <Button type="submit" disabled={passwordLoading} className="inline-flex items-center gap-2">
               <LockKeyhole size={16} aria-hidden="true" />
-              Simpan Password
+              {passwordLoading ? "Menyimpan..." : "Simpan Password"}
             </Button>
           </div>
 
