@@ -5,7 +5,7 @@
 services:
   # ==================== DATABASE ====================
   db:
-    image: postgres:16-alpine
+    image: postgres:16
     container_name: antick-async-db
     restart: unless-stopped
     environment:
