@@ -10,8 +10,7 @@ class DepartmentResponse(BaseModel):
     name: str
     description: Optional[str] = None
     created_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DepartmentCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
@@ -100,8 +99,7 @@ class ApprovalLogResponse(BaseModel):
     performed_by: int
     performed_at: datetime
     notes: Optional[str] = None
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ChangePasswordRequest(BaseModel):
     old_password: str
@@ -130,8 +128,7 @@ class CategoryUpdate(BaseModel):
 class CategoryResponse(CategoryBase):
     id: int
     created_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Ticket ---
 class TicketBase(BaseModel):
@@ -170,8 +167,7 @@ class TicketResponse(BaseModel):
     assignee: Optional[UserResponse] = None
     category: CategoryResponse
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TicketListResponse(BaseModel):
     total: int
@@ -198,8 +194,7 @@ class NotificationResponse(BaseModel):
     is_read: bool
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class NotificationListResponse(BaseModel):
     unread_count: int
