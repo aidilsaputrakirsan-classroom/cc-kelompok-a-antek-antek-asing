@@ -1,0 +1,15 @@
+# Backend — Lead Backend
+/backend/                @ItsHertz666
+
+# Frontend — Lead Frontend
+/frontend/               @bagsstywn
+
+# Docker & Infrastructure — Lead DevOps
+docker-compose.yml       @notyourkise
+/backend/Dockerfile      @notyourkise
+/frontend/Dockerfile     @notyourkise
+Makefile                 @notyourkise
+
+# Documentation — Lead QA & Docs
+README.md                @nanda-aulia
+/docs/                   @nanda-aulia
