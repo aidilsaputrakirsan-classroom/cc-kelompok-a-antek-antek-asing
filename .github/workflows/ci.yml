@@ -9,6 +9,11 @@
 # 1. test-backend  : Install deps + run pytest (SQLite in-memory)
 # 2. test-frontend : Install deps + run Vitest + build Vite
 # 3. build-docker  : Build Docker images (hanya jika kedua test PASS)
+#
+# Optimasi:
+# - concurrency: cancel run lama jika ada push baru ke branch yang sama
+# - timeout-minutes: 10 per job (auto-fail jika melebihi batas)
+# - PR comment notification saat CI gagal
 
 name: CI Pipeline
 
@@ -18,6 +23,11 @@ on:
   pull_request:
     branches: [main]
 
+# Cancel run yang sedang berjalan jika ada push baru ke branch yang sama
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ================================
   # JOB 1: Test Backend (Python/FastAPI)
@@ -25,6 +35,7 @@ jobs:
   test-backend:
     name: 🐍 Test Backend
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     defaults:
       run:
@@ -69,12 +80,25 @@ jobs:
         run: |
           pytest --cov=. --cov-report=term-missing --cov-fail-under=50
 
+      - name: 💬 Comment PR on failure
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `❌ **CI Gagal: 🐍 Backend Tests**\n\nTest backend gagal atau coverage di bawah threshold 50%.\n\n👉 [Lihat log di sini](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n**Debug lokal:** \`cd backend && pytest -v\``
+            })
+
   # ================================
   # JOB 2: Test Frontend (React/Vitest)
   # ================================
   test-frontend:
     name: ⚛️ Test Frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     defaults:
       run:
@@ -103,6 +127,18 @@ jobs:
       - name: 🏗️ Build frontend
         run: npm run build
 
+      - name: 💬 Comment PR on failure
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `❌ **CI Gagal: ⚛️ Frontend Tests / Build**\n\nTest frontend atau Vite build gagal.\n\n👉 [Lihat log di sini](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n**Debug lokal:** \`cd frontend && npm test\` atau \`npm run build\``
+            })
+
   # ================================
   # JOB 3: Build Docker Images
   # ================================
@@ -110,6 +146,7 @@ jobs:
     name: 🐳 Build Docker
     runs-on: ubuntu-latest
     needs: [test-backend, test-frontend]    # Hanya jalan jika KEDUA test PASS
+    timeout-minutes: 10
 
     steps:
       - name: 📥 Checkout code
@@ -129,3 +166,15 @@ jobs:
         run: |
           echo "✅ All Docker images built successfully!"
           docker images | grep cloudapp
+
+      - name: 💬 Comment PR on failure
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `❌ **CI Gagal: 🐳 Docker Build**\n\nBuild Docker image gagal.\n\n👉 [Lihat log di sini](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n**Debug lokal:** \`docker build ./backend\` atau \`docker build ./frontend\``
+            })
