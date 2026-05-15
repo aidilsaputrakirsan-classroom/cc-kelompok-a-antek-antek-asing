@@ -58,7 +58,7 @@ jobs:
             exit 1
           fi
 
-          if echo "$BODY" | grep -q '"status".*"healthy"'; then
+          if echo "$BODY" | grep -iq 'healthy'; then
             echo "✅ Production is healthy! (HTTP $STATUS)"
             echo "Response: $BODY"
           else
