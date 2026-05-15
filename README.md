@@ -2,6 +2,35 @@
 
 ![CI Pipeline](https://github.com/aidilsaputrakirsan-classroom/cc-kelompok-a-antek-antek-asing/actions/workflows/ci.yml/badge.svg)
 
+---
+
+## 🌐 Live Demo
+
+| Service | URL |
+|---------|-----|
+| Frontend | [https://antick-async.online](https://antick-async.online) |
+| Backend API | [https://api.antick-async.online](https://api.antick-async.online) |
+| API Docs (Swagger) | [https://api.antick-async.online/docs](https://api.antick-async.online/docs) |
+| Health Check | [https://api.antick-async.online/health](https://api.antick-async.online/health) |
+
+> Deployed di VPS lokal yang terekspos ke internet via **Cloudflare Tunnel**.  
+> VPS mungkin tidak selalu online — jika tidak dapat diakses, deployment sedang tidak aktif.
+
+## 🔄 CI/CD Pipeline
+
+**Continuous Integration** berjalan otomatis saat push ke `main`:
+
+1. ✅ Test backend (pytest, min 50% coverage)
+2. ✅ Test frontend (Vitest + Vite build)
+3. ✅ Build Docker images
+
+**Continuous Delivery** (semi-manual):
+
+- Setelah merge ke `main`: DevOps akses VPS → `git pull origin main` → `docker compose up --build -d`
+- Health check tersedia via GitHub Actions: [🏥 Production Health Check](.github/workflows/health-check.yml) (jalankan manual setelah deploy)
+
+---
+
 ## Deskripsi Proyek
 Antick Async merupakan sistem internal helpdesk berbasis cloud yang dirancang untuk membantu perusahaan dalam mengelola alur pekerjaan internal secara tersturktur dan terdokumentasi. Karyawan dapat membuat serta menyelesaikan tiket pekerjaan seperti maintance, perbaikan perangkat hingga teknis lainnya, serta dapat mempermudah dalam pencatatan dan evaluasi performa karyawan dengan melalui Antick Async. 
 
@@ -87,7 +116,7 @@ Menerima notifikasi status tiket
 | PostgreSQL | Database |
 | Docker | Containerization|
 | GitHub Actions | CI/CD |
-| Railway / Render| Cloud Deployment |
+| Cloudflare Tunnel | Cloud Deployment & HTTPS |
 
 
 
@@ -448,7 +477,7 @@ Hasil testing pada modul 4 dapat dilihat di folder berikut:
 | 4      | Full-Stack Integration    | ✅ |
 | 5–7    | Docker & Compose          | ✅ |
 | 8      | UTS Demo                  | ✅ |
-| 9–11   | CI/CD Pipeline            | ⬜ |
+| 9–11   | CI/CD Pipeline            | ✅ |
 | 12–14  | Microservices             | ⬜ |
 | 15–16  | Final & UAS               | ⬜ |
 
