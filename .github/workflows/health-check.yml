@@ -1,0 +1,95 @@
+# ==============================================
+# Production Health Check — Antick Async
+# ==============================================
+# Trigger: Manual saja (workflow_dispatch)
+# Alasan: VPS adalah PC lokal yang tidak selalu online 24/7.
+#         Cron otomatis akan menghasilkan error merah saat PC mati.
+#         Health check dijalankan secara manual oleh DevOps
+#         setelah menyelesaikan proses deploy di VPS.
+#
+# Cara pakai:
+#   GitHub → Actions → 🏥 Production Health Check → Run workflow
+#   Isi URL (default sudah benar) → Run
+
+name: 🏥 Production Health Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      health_url:
+        description: 'Backend health check URL'
+        required: true
+        default: 'https://api.antick-async.online/health'
+        type: string
+
+jobs:
+  health-check:
+    name: 🏥 Check Production Health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: 🌐 Determine health URL
+        id: url
+        run: |
+          URL="${{ github.event.inputs.health_url }}"
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Checking: $URL"
+
+      - name: ⏳ Call health endpoint
+        id: health
+        run: |
+          URL="${{ steps.url.outputs.url }}"
+          HTTP_STATUS=$(curl -s -o /tmp/health_response.json -w "%{http_code}" --max-time 15 "$URL")
+          BODY=$(cat /tmp/health_response.json)
+          echo "status_code=$HTTP_STATUS" >> $GITHUB_OUTPUT
+          echo "body=$BODY" >> $GITHUB_OUTPUT
+          echo "HTTP Status : $HTTP_STATUS"
+          echo "Response   : $BODY"
+
+      - name: ✅ Verify response
+        run: |
+          STATUS="${{ steps.health.outputs.status_code }}"
+          BODY="${{ steps.health.outputs.body }}"
+
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Health check FAILED! HTTP $STATUS"
+            echo "Response: $BODY"
+            exit 1
+          fi
+
+          if echo "$BODY" | grep -q '"status".*"healthy"'; then
+            echo "✅ Production is healthy! (HTTP $STATUS)"
+            echo "Response: $BODY"
+          else
+            echo "❌ Health check FAILED! Field 'status' bukan 'healthy'"
+            echo "Response: $BODY"
+            exit 1
+          fi
+
+      - name: 📋 Deployment summary
+        if: always()
+        run: |
+          STATUS="${{ steps.health.outputs.status_code }}"
+          BODY="${{ steps.health.outputs.body }}"
+          RESULT="${{ job.status }}"
+
+          if [ "$RESULT" = "success" ]; then
+            ICON="✅"
+          else
+            ICON="❌"
+          fi
+
+          echo "## $ICON Production Health Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | ${{ steps.url.outputs.url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| HTTP Status | $STATUS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Result | $RESULT |" >> $GITHUB_STEP_SUMMARY
+          echo "| Timestamp | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Response Body" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+          echo "$BODY" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
