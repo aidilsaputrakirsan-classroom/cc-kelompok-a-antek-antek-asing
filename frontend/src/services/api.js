@@ -1,12 +1,16 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost";
 const TOKEN_KEY = "ticketflow_auth_token";
 
 let unauthorizedHandler = null;
 
 function buildError(status, detail) {
-  const error = new Error(detail || `Request gagal (${status})`);
+  let msg = detail;
+  if (status === 502 || status === 503 || status === 504) {
+    msg = "Service temporarily unavailable";
+  }
+  const error = new Error(msg || `Request gagal (${status})`);
   error.status = status;
-  error.detail = detail;
+  error.detail = msg || `Request gagal (${status})`;
   return error;
 }
 
@@ -72,7 +76,12 @@ async function request(path, options = {}) {
     }
   }
 
-  const response = await fetch(`${API_URL}${path}`, init);
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, init);
+  } catch (err) {
+    throw buildError(503, "Service temporarily unavailable");
+  }
 
   if (response.status === 401) {
     tokenStorage.clearToken();
@@ -220,6 +229,28 @@ export const userApi = {
   },
   updateUserProfile(name, email) {
     return request("/auth/me", { method: "PUT", body: { name, email } });
+  },
+};
+
+export const itemApi = {
+  list({ search = "", skip = 0, limit = 20 } = {}) {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    params.append("skip", String(skip));
+    params.append("limit", String(limit));
+    return request(`/items?${params.toString()}`);
+  },
+  stats() {
+    return request("/items/stats");
+  },
+  create(payload) {
+    return request("/items", { method: "POST", body: payload });
+  },
+  update(id, payload) {
+    return request(`/items/${id}`, { method: "PUT", body: payload });
+  },
+  remove(id) {
+    return request(`/items/${id}`, { method: "DELETE" });
   },
 };
 

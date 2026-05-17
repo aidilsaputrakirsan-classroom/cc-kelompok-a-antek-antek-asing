@@ -18,6 +18,7 @@ import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
 import EmployeeTicketDetailPage from "./pages/EmployeeTicketDetailPage";
 import EmployeeTicketEditPage from "./pages/EmployeeTicketEditPage";
 import ProfilePage from "./pages/ProfilePage";
+import ItemsPage from "./pages/ItemsPage";
 
 const router = createBrowserRouter([
   {
@@ -44,6 +45,7 @@ const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { path: "/profile", element: <ProfilePage /> },
+          { path: "/items", element: <ItemsPage /> },
           {
             path: "/admin",
             element: <ProtectedRoute allowedRoles={["superadmin", "admin", "it_employee"]} />,
