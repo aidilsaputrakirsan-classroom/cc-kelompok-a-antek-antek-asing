@@ -7,11 +7,10 @@ function NavItem({ to, children, active }) {
   return (
     <Link
       to={to}
-      className={`rounded-md px-3 py-1.5 text-sm transition ${
-        active
+      className={`rounded-md px-3 py-1.5 text-sm transition ${active
           ? "bg-slate-900 dark:bg-slate-700 text-white"
           : "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
-      }`}
+        }`}
     >
       {children}
     </Link>
@@ -37,6 +36,9 @@ export default function AppNavbar() {
         <nav className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
           <NavItem to="/" active={location.pathname === "/"}>
             Home
+          </NavItem>
+          <NavItem to="/items" active={location.pathname === "/items"}>
+            Inventory Items
           </NavItem>
           {!isAdminLike && (
             <NavItem to="/employee" active={location.pathname.startsWith("/employee")}>
