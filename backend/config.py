@@ -1,59 +1,102 @@
-import os
-from dotenv import load_dotenv
+"""
+Centralized configuration management using pydantic-settings.
 
-load_dotenv()
+All environment variables are loaded from a .env file at the project root
+and validated at application startup. This guarantees that the app will
+fail-fast with clear error messages if a required secret is missing or
+malformed — critical for safe Continuous Deployment.
+"""
 
-class Settings:
+from typing import List
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
     """
-    Centralized configuration management for the application.
-    Enforces strict validation of critical security parameters.
+    Application settings loaded from environment variables.
+
+    pydantic-settings will:
+      1. Read values from the .env file (via model_config).
+      2. Override them with real environment variables when present
+         (e.g. in Docker / CI / VPS).
+      3. Apply type coercion and validators automatically.
     """
-    def __init__(self):
-        self.SECRET_KEY = os.getenv("SECRET_KEY", "").strip()
-        self.ALGORITHM = os.getenv("ALGORITHM", "HS256")
-        self.ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
-        
-        self.SUPERADMIN_EMAIL = os.getenv("SUPERADMIN_EMAIL", "").strip()
-        self.SUPERADMIN_PASSWORD = os.getenv("SUPERADMIN_PASSWORD", "").strip()
 
-        # SMTP CONFIGURATION
-        self.SMTP_HOST = os.getenv("SMTP_HOST", "smtp.hostinger.com").strip()
-        self.SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-        self.SMTP_USER = os.getenv("SMTP_USER", "").strip()
-        self.SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
-        self.MAIL_FROM = os.getenv("MAIL_FROM", self.SMTP_USER).strip()
-        self.MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME", "Antick Async IT Support").strip()
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",          # ignore env vars that don't match a field
+        case_sensitive=True,
+    )
 
-        self._validate_settings()
+    # ── Application ──────────────────────────────────────────────
+    ENVIRONMENT: str = "development"
 
-    def _validate_settings(self):
-        # 1. Require SECRET_KEY to be set
-        if not self.SECRET_KEY:
+    # ── Database ─────────────────────────────────────────────────
+    DATABASE_URL: str
+
+    # ── JWT / Auth ───────────────────────────────────────────────
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
+    # ── CORS ─────────────────────────────────────────────────────
+    # Accepts a comma-separated string (e.g. "http://localhost:5173,http://localhost:3000")
+    # and converts it to a Python list for CORSMiddleware.
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Allow CORS_ORIGINS to be passed as a comma-separated string."""
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
+
+    # ── Superadmin Seeding ───────────────────────────────────────
+    SUPERADMIN_EMAIL: str
+    SUPERADMIN_PASSWORD: str
+
+    # ── SMTP / Email ─────────────────────────────────────────────
+    SMTP_HOST: str = "smtp.hostinger.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    MAIL_FROM: str = ""
+    MAIL_FROM_NAME: str = "Antick Async IT Support"
+
+    # ── Custom Validators ────────────────────────────────────────
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def validate_secret_key(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
             raise ValueError(
                 "CRITICAL SECURITY ERROR: 'SECRET_KEY' environment variable is missing or empty. "
                 "The application cannot start safely. Please define it in your .env file or environment variables."
             )
-        
-        # 2. Validate SECRET_KEY length/entropy (Bonus)
-        # A 256-bit key represented in hex or base64 is typically 32+ characters long.
-        if len(self.SECRET_KEY) < 32:
+        if len(v) < 32:
             raise ValueError(
                 "CRITICAL SECURITY ERROR: 'SECRET_KEY' is too weak. "
                 "It must be at least 32 characters long. "
-                "You can generate a secure key using: `python -c \"import secrets; print(secrets.token_urlsafe(32))\"`"
+                'You can generate a secure key using: `python -c "import secrets; print(secrets.token_urlsafe(32))"`'
             )
+        return v
 
-        # 3. Validasi Superadmin Credentials
-        if not self.SUPERADMIN_EMAIL or not self.SUPERADMIN_PASSWORD:
-            raise ValueError(
-                "CRITICAL SECURITY ERROR: 'SUPERADMIN_EMAIL' or 'SUPERADMIN_PASSWORD' is missing. "
-                "Default fallbacks have been removed for security reasons. Please provide them in your .env file."
-            )
-        
-        if self.SUPERADMIN_PASSWORD == "Superadmin123!":
+    @field_validator("SUPERADMIN_PASSWORD")
+    @classmethod
+    def validate_superadmin_password(cls, v: str) -> str:
+        if v == "Superadmin123!":
             raise ValueError(
                 "CRITICAL SECURITY ERROR: Superadmin password is using the old insecure default 'Superadmin123!'. "
                 "Please change 'SUPERADMIN_PASSWORD' in your .env to a secure value."
             )
+        return v
 
+
+# Singleton — imported by other modules as `from config import settings`
 settings = Settings()

@@ -1,13 +1,10 @@
-import os
-from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-load_dotenv()
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL tidak ditemukan di .env!")
+from config import settings
+
+DATABASE_URL = settings.DATABASE_URL
 
 # Default SQLAlchemy postgresql:// URL expects psycopg2.
 # This project uses psycopg v3, so normalize driver automatically.
@@ -24,3 +21,17 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def check_db_connection() -> bool:
+    """
+    Lightweight database connectivity check.
+    Returns True if the database responds to a simple query,
+    False otherwise. Used by the /health endpoint.
+    """
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True
+    except Exception:
+        return False

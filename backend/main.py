@@ -1,7 +1,5 @@
-import os
 from typing import Optional
 from contextlib import asynccontextmanager
-from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
@@ -10,7 +8,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from database import engine, get_db, SessionLocal
+from database import engine, get_db, SessionLocal, check_db_connection
 from models import Base, User, UserRole, UserStatus, UserDepartment, Department
 from schemas import (
     UserCreate, UserResponse, RegisterResponse, LoginRequest, TokenResponse,
@@ -26,7 +24,7 @@ from auth import create_access_token, get_current_user, get_current_unverified_u
 import crud
 from config import settings
 
-load_dotenv()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -91,14 +89,10 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS
-# Kita set default-nya untuk Vite (5173) dan React standar (3000)
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
-origins_list = [origin.strip() for origin in allowed_origins.split(",")]
-
+# CORS — origins are parsed from the CORS_ORIGINS env var by pydantic-settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins_list,
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -129,7 +123,23 @@ def register(request: Request, user_data: UserCreate, db: Session = Depends(get_
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    """
+    Comprehensive health-check endpoint for CI/CD smoke tests.
+    Returns application status, current environment, and database
+    connectivity so deployment scripts can verify the release.
+    """
+    db_healthy = check_db_connection()
+
+    overall_status = "healthy" if db_healthy else "degraded"
+
+    return {
+        "status": overall_status,
+        "environment": settings.ENVIRONMENT,
+        "version": app.version,
+        "checks": {
+            "database": "connected" if db_healthy else "disconnected",
+        },
+    }
 
 @app.post("/auth/login", response_model=TokenResponse)
 @limiter.limit("5/minute")
