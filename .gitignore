@@ -5,6 +5,8 @@
 **/.env
 **/.env.*
 **/.env.local
+# Exception: .env.example boleh di-commit (template, bukan secrets)
+!**/.env.example
 # Exception: .env.production boleh di-commit (hanya berisi URL publik, bukan secrets)
 !**/.env.production
 **/TUNNEL_TOKEN
