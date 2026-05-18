@@ -1,42 +1,75 @@
-.PHONY: up down build logs ps clean restart
+.PHONY: up build down clean restart logs logs-auth logs-item logs-gateway logs-frontend \
+        ps health shell-auth shell-item shell-auth-db shell-item-db
 
-# Start semua services
+# ==================== START / STOP ====================
+
+# Start semua services (tanpa rebuild)
 up:
 	docker compose up -d
 
-# Start dengan rebuild
+# Build ulang semua images + start
 build:
 	docker compose up --build -d
 
-# Stop & remove containers
+# Stop & remove containers (volumes tetap)
 down:
 	docker compose down
 
-# Stop, remove, DAN hapus volumes (⚠️ data hilang!)
+# Stop, remove containers, DAN hapus volumes (⚠️ semua data hilang!)
 clean:
 	docker compose down -v
 	docker system prune -f
 
-# Restart semua
+# Restart semua services
 restart:
 	docker compose restart
 
-# Lihat logs (semua services)
+# ==================== LOGS ====================
+
+# Logs semua services (follow)
 logs:
 	docker compose logs -f
 
-# Lihat logs backend saja
-logs-backend:
-	docker compose logs -f backend
+# Logs Auth Service saja
+logs-auth:
+	docker compose logs -f auth-service
 
-# Lihat status
+# Logs Item Service saja
+logs-item:
+	docker compose logs -f item-service
+
+# Logs API Gateway saja
+logs-gateway:
+	docker compose logs -f gateway
+
+# Logs Frontend saja
+logs-frontend:
+	docker compose logs -f frontend
+
+# ==================== STATUS ====================
+
+# Status semua containers
 ps:
 	docker compose ps
 
-# Masuk ke backend shell
-shell-backend:
-	docker compose exec backend bash
+# Test gateway health endpoint
+health:
+	curl -s http://localhost/health | python -m json.tool
 
-# Masuk ke database
-shell-db:
-	docker compose exec db psql -U postgres -d cloudapp
+# ==================== SHELL ACCESS ====================
+
+# Shell ke dalam auth-service
+shell-auth:
+	docker compose exec auth-service bash
+
+# Shell ke dalam item-service
+shell-item:
+	docker compose exec item-service bash
+
+# Akses auth database (psql)
+shell-auth-db:
+	docker compose exec auth-db psql -U postgres -d auth_db
+
+# Akses item database (psql)
+shell-item-db:
+	docker compose exec item-db psql -U postgres -d item_db
