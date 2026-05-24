@@ -80,17 +80,7 @@ jobs:
         run: |
           pytest --cov=. --cov-report=term-missing --cov-fail-under=50
 
-      - name: 💬 Comment PR on failure
-        if: failure() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `❌ **CI Gagal: 🐍 Backend Tests**\n\nTest backend gagal atau coverage di bawah threshold 50%.\n\n👉 [Lihat log di sini](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n**Debug lokal:** \`cd backend && pytest -v\``
-            })
+
 
   # ================================
   # JOB 2: Test Frontend (React/Vitest)
@@ -127,17 +117,7 @@ jobs:
       - name: 🏗️ Build frontend
         run: npm run build
 
-      - name: 💬 Comment PR on failure
-        if: failure() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `❌ **CI Gagal: ⚛️ Frontend Tests / Build**\n\nTest frontend atau Vite build gagal.\n\n👉 [Lihat log di sini](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n**Debug lokal:** \`cd frontend && npm test\` atau \`npm run build\``
-            })
+
 
   # ================================
   # JOB 3: Build Docker Images
@@ -152,15 +132,6 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🐳 Build auth-service image
-        run: docker build -t cloudapp-auth-service:ci ./services/auth-service
-
-      - name: 🐳 Build item-service image
-        run: docker build -t cloudapp-item-service:ci ./services/item-service
-
-      - name: 🐳 Build gateway image
-        run: docker build -t cloudapp-gateway:ci ./services/gateway
-
       - name: 📦 Setup Node.js (for frontend build)
         uses: actions/setup-node@v4
         with:
@@ -174,22 +145,10 @@ jobs:
           npm ci
           npm run build
 
-      - name: 🐳 Build frontend image
-        run: docker build -t cloudapp-frontend:ci ./frontend
+      - name: 🐳 Build images using Docker Compose
+        run: docker compose build
 
       - name: ✅ Build success
         run: |
           echo "✅ All Docker images built successfully!"
-          docker images | grep cloudapp
-
-      - name: 💬 Comment PR on failure
-        if: failure() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `❌ **CI Gagal: 🐳 Docker Build**\n\nBuild Docker image gagal.\n\n👉 [Lihat log di sini](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n**Debug lokal:** Pastikan \`npm run build\` berjalan sukses di frontend sebelum docker build.`
-            })
+          docker images
