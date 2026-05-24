@@ -152,15 +152,30 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🐳 Build backend image
-        run: docker build -t cloudapp-backend:ci ./backend
+      - name: 🐳 Build auth-service image
+        run: docker build -t cloudapp-auth-service:ci ./services/auth-service
+
+      - name: 🐳 Build item-service image
+        run: docker build -t cloudapp-item-service:ci ./services/item-service
+
+      - name: 🐳 Build gateway image
+        run: docker build -t cloudapp-gateway:ci ./services/gateway
+
+      - name: 📦 Setup Node.js (for frontend build)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 🏗️ Pre-build React for Docker
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run build
 
       - name: 🐳 Build frontend image
-        run: |
-          docker build \
-            --build-arg VITE_API_URL=http://localhost:8000 \
-            -t cloudapp-frontend:ci \
-            ./frontend
+        run: docker build -t cloudapp-frontend:ci ./frontend
 
       - name: ✅ Build success
         run: |
@@ -176,5 +191,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `❌ **CI Gagal: 🐳 Docker Build**\n\nBuild Docker image gagal.\n\n👉 [Lihat log di sini](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n**Debug lokal:** \`docker build ./backend\` atau \`docker build ./frontend\``
+              body: `❌ **CI Gagal: 🐳 Docker Build**\n\nBuild Docker image gagal.\n\n👉 [Lihat log di sini](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n**Debug lokal:** Pastikan \`npm run build\` berjalan sukses di frontend sebelum docker build.`
             })
