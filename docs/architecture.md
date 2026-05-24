@@ -21,27 +21,47 @@ flowchart TD
     User[👤 User / Browser]
 
     subgraph Docker Network
-        Frontend[Frontend Service<br/>React + Nginx<br/>Port 3000]
+
+        Gateway[API Gateway<br/>Nginx<br/>Port 80]
+
+        Frontend[Frontend Service<br/>React<br/>Port 3000]
 
         Auth[Auth Service<br/>FastAPI<br/>Port 8001]
 
         Item[Item Service<br/>FastAPI<br/>Port 8002]
 
-        DB[(PostgreSQL Database<br/>Port 5433)]
+        AuthDB[(Auth Database<br/>PostgreSQL<br/>Port 5433)]
+
+        ItemDB[(Item Database<br/>PostgreSQL<br/>Port 5434)]
+
+        Tunnel[Cloudflare Tunnel<br/>cloudflared]
+
     end
 
-    User -->|HTTP Request| Frontend
+    User -->|HTTPS Request| Tunnel
 
-    Frontend -->|Login/Register| Auth
+    Tunnel --> Gateway
 
-    Frontend -->|CRUD Items| Item
+    Gateway -->|Serve Frontend| Frontend
+
+    Gateway -->|API Auth Request| Auth
+
+    Gateway -->|API Item Request| Item
 
     Item -->|Verify JWT Token| Auth
 
-    Auth --> DB
-    Item --> DB
+    Auth --> AuthDB
+
+    Item --> ItemDB
 ```
 
+<br>
+
+### Penjelasan Arsitektur 
+
+Arsitektur aplikasi pada Antick Async menggunakan pendekatan microservices. Pada diagram di atas menunjukkan alur komunikasi antar service pada arsitektur microservices Antick Async. User mengakses aplikasi melalui Cloudflare Tunnel yang diteruskan ke API Gateway (Nginx). Gateway bertugas melakukan routing request ke frontend maupun backend services. 
+
+Setiap backend service memiliki database masing-masing untuk mengurangi coupling antar service dan meningkatkan scalability sistem. Auth Service bertanggung jawab untuk authentication dan JWT validation, sedangkan Item Service menangani proses CRUD inventory dan melakukan validasi token ke Auth Service melalui komunikasi internal service menggunakan HTTP request.
 <br>
 
 ## Services & Ports
@@ -52,6 +72,25 @@ flowchart TD
 | Auth Service | 8001 | FastAPI | Authentication & JWT management |
 | Item Service | 8002 | FastAPI | CRUD item dan inventory management |
 | PostgreSQL | 5433 | PostgreSQL | Penyimpanan data aplikasi |
+| Gateway | 80 | Nginx | Reverse proxy & API Gateway|
+| Auth DB  | 5433 | PotsgreSQL | Database authentication|
+| Item DB  | 5434 | PotsgreSQL | Database inventory|
+| Cloudflared  | - |Cloudflare Tunnel | Secure public tunnel|
+
+<br>
+
+# Environment Variables
+
+| Variable | Fungsi |
+|---|---|
+| DATABASE_URL | Koneksi database PostgreSQL |
+| JWT_SECRET_KEY | Secret key JWT |
+| AUTH_SERVICE_URL | URL Auth Service |
+| POSTGRES_USER | Username PostgreSQL |
+| POSTGRES_PASSWORD | Password PostgreSQL |
+| POSTGRES_DB | Nama database |
+| ACCESS_TOKEN_EXPIRE_MINUTES | Durasi token JWT |
+| VITE_API_URL | URL API Gateway frontend |
 
 <br>
 
@@ -100,6 +139,17 @@ Item Service bertanggung jawab untuk:
 | PUT | `/items/{id}` | Update item |
 | DELETE | `/items/{id}` | Hapus item |
 | GET | `/health` | Health check service |
+
+<br>
+
+# API Documentation
+
+FastAPI menyediakan dokumentasi otomatis menggunakan Swagger UI.
+
+| Service | Swagger URL |
+|---|---|
+| Auth Service | http://localhost:8001/docs |
+| Item Service | http://localhost:8002/docs |
 
 <br>
 
