@@ -70,6 +70,8 @@ services:
       dockerfile: Dockerfile
     container_name: antick-async-auth-service
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres123@auth-db:5432/auth_db
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production-min-32-chars}

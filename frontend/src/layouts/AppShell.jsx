@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, Tags, Ticket, User, Users, Clock, Building2 } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, Tags, Ticket, User, Users, Clock, Building2, Package } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { getAvatarPath } from "../constants/avatars";
 import NotificationBell from "../components/NotificationBell";
@@ -79,6 +79,7 @@ export default function AppShell() {
         { to: "/admin?tab=users", label: "Team Member", tab: "users", icon: Users },
         { to: "/admin?tab=departments", label: "Departments", tab: "departments", icon: Building2 },
         { to: "/admin?tab=categories", label: "Categories", tab: "categories", icon: Tags },
+        { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
       ];
     }
 
@@ -86,18 +87,21 @@ export default function AppShell() {
       return [
         { to: "/admin", label: "Overview", tab: "overview", icon: LayoutDashboard },
         { to: "/admin?tab=tickets", label: "All Tickets", tab: "tickets", icon: Ticket },
+        { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
       ];
     }
 
     if (isAdminLike) {
       return [
         { to: "/admin", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
+        { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
       ];
     }
 
     return [
       { to: "/employee", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
       { to: "/employee?tab=my-ticket", label: "My Ticket", tab: "my-ticket", icon: Ticket },
+      { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
     ];
   }, [isAdminLike, user?.role]);
 

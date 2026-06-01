@@ -1,5 +1,5 @@
 node_modules/
-dist/
+# dist/ is now needed for static docker build
 .env
 .git/
 .gitignore
