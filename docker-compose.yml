@@ -100,6 +100,8 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres123@item-db:5432/item_db
       AUTH_SERVICE_URL: http://auth-service:8001
+      SERVICE_NAME: item-service
+      LOG_LEVEL: INFO
     networks:
       - cloudnet
     depends_on:

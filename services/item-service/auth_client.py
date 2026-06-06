@@ -17,17 +17,20 @@ following the Single Responsibility Principle of microservices.
 """
 
 import httpx
-from fastapi import Depends, HTTPException, status
+import logging
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 # Points to Auth Service's /login for Swagger UI compatibility,
 # but actual token validation goes through /verify.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.AUTH_SERVICE_URL}/login")
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
+async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)) -> dict:
     """
     FastAPI dependency that verifies the user's Bearer token
     by calling the Auth Service's /verify endpoint.
@@ -39,25 +42,34 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         HTTPException 401: If token is invalid or Auth Service rejects it.
         HTTPException 503: If Auth Service is unreachable.
     """
+    correlation_id = getattr(request.state, "correlation_id", "unknown")
+    logger.info("Calling Auth Service for token verification", extra={"correlation_id": correlation_id})
+    
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{settings.AUTH_SERVICE_URL}/verify",
-                headers={"Authorization": f"Bearer {token}"},
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "X-Correlation-ID": correlation_id
+                },
                 timeout=5.0,
             )
     except httpx.ConnectError:
+        logger.error("Auth Service connection error", extra={"correlation_id": correlation_id})
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Auth Service tidak dapat dihubungi. Silakan coba lagi nanti.",
         )
     except httpx.TimeoutException:
+        logger.error("Auth Service timeout", extra={"correlation_id": correlation_id})
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
             detail="Auth Service timeout. Silakan coba lagi nanti.",
         )
 
     if response.status_code == 200:
+        logger.info("Auth Service token verified successfully", extra={"correlation_id": correlation_id})
         return response.json()
 
     # Forward the error from Auth Service
@@ -67,6 +79,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     except Exception:
         pass
 
+    logger.warning(f"Auth Service rejected token: {detail}", extra={"correlation_id": correlation_id})
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail=detail,

@@ -26,6 +26,11 @@ from database import Base, engine, get_db, check_db_connection
 from models import Item
 from schemas import ItemCreate, ItemUpdate, ItemResponse, ItemStatsResponse
 from auth_client import get_current_user
+from shared.logging_config import setup_logging
+from shared.logging_middleware import RequestLoggingMiddleware
+from shared.metrics import metrics
+
+setup_logging()
 
 
 # ── Lifespan ────────────────────────────────────────────────────
@@ -43,6 +48,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(RequestLoggingMiddleware)
+
 
 # ── Health Check ────────────────────────────────────────────────
 @app.get("/health")
@@ -54,6 +61,11 @@ def health_check():
         "status": "healthy" if db_ok else "degraded",
         "checks": {"database": "connected" if db_ok else "disconnected"},
     }
+
+
+@app.get("/metrics")
+def metrics_endpoint():
+    return {"service": "item-service", **metrics.get_metrics()}
 
 
 # ── CRUD Endpoints ─────────────────────────────────────────────
