@@ -8,6 +8,7 @@ import Alert from "../components/ui/Alert";
 import SplineCardScene from "../components/SplineCardScene";
 import CosmicBackdrop from "../components/CosmicBackdrop";
 import ThemeToggle from "../components/ThemeToggle";
+import ServiceUnavailableBanner from "../components/ServiceUnavailableBanner";
 
 const registerSceneUrl = import.meta.env.VITE_SPLINE_SCENE_URL_REGISTER || import.meta.env.VITE_SPLINE_SCENE_URL;
 
@@ -73,6 +74,7 @@ export default function RegisterPage() {
         </aside>
 
         <div className="flex flex-col justify-center bg-white dark:bg-slate-900 p-6 md:p-10 transition-colors duration-500">
+          <ServiceUnavailableBanner variant="card" />
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <h2 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100 md:text-5xl transition-colors duration-500">Sign up</h2>

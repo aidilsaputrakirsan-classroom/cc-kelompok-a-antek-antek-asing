@@ -6,6 +6,7 @@ import { getAvatarPath } from "../constants/avatars";
 import NotificationBell from "../components/NotificationBell";
 import ThemeToggle from "../components/ThemeToggle";
 import Button from "../components/ui/Button";
+import ServiceUnavailableBanner from "../components/ServiceUnavailableBanner";
 
 function SidebarLink({ to, label, isActive, onClick, icon: Icon, collapsed }) {
   return (
@@ -266,6 +267,7 @@ export default function AppShell() {
         )}
 
         <section className="flex min-h-dvh min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white/85 dark:border-slate-700 dark:bg-slate-900/85 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.45)] dark:shadow-[0_18px_50px_-30px_rgba(0,0,0,0.7)] md:h-full md:min-h-0 md:rounded-2xl transition-colors duration-300">
+          <ServiceUnavailableBanner variant="banner" />
           <header className="border-b border-slate-200 dark:border-slate-700 px-4 py-3 md:px-6 bg-white dark:bg-slate-900 transition-colors duration-300">
             <div className="flex items-center gap-2 md:gap-3">
               <Button
