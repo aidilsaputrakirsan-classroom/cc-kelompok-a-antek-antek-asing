@@ -23,6 +23,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             duration_ms = (time.perf_counter() - start_time) * 1000
             
+            from .metrics import metrics
+            metrics.record_request(request.url.path, request.method, response.status_code, duration_ms)
+            
             logger.info(
                 "Request completed",
                 extra={
@@ -38,6 +41,10 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             
         except Exception as e:
             duration_ms = (time.perf_counter() - start_time) * 1000
+            
+            from .metrics import metrics
+            metrics.record_request(request.url.path, request.method, 500, duration_ms)
+            
             logger.error(
                 "Request failed with exception",
                 extra={
