@@ -23,6 +23,11 @@ from fastapi.security.utils import get_authorization_scheme_param
 from auth import create_access_token, get_current_user, get_current_unverified_user, RoleChecker, hash_password, verify_password, oauth2_scheme, token_blacklist, decode_token
 import crud
 from config import settings
+from shared.logging_config import setup_logging
+from shared.logging_middleware import RequestLoggingMiddleware
+from shared.metrics import metrics
+
+setup_logging()
 
 
 
@@ -85,6 +90,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestLoggingMiddleware)
 
 allow_it_and_admins = RoleChecker([UserRole.superadmin, UserRole.admin, UserRole.it_employee])
 allow_admins = RoleChecker([UserRole.superadmin, UserRole.admin])
@@ -117,6 +123,11 @@ def health_check():
             "database": "connected" if db_healthy else "disconnected",
         },
     }
+
+@app.get("/metrics")
+def metrics_endpoint():
+    return {"service": "auth-service", **metrics.get_metrics()}
+
 
 @app.post("/login", response_model=TokenResponse)
 @limiter.limit("5/minute")
