@@ -19,6 +19,8 @@ import EmployeeTicketDetailPage from "./pages/EmployeeTicketDetailPage";
 import EmployeeTicketEditPage from "./pages/EmployeeTicketEditPage";
 import ProfilePage from "./pages/ProfilePage";
 import ItemsPage from "./pages/ItemsPage";
+import { ServiceStatusProvider } from "./context/ServiceStatusContext";
+import ServiceUnavailableModal from "./components/ServiceUnavailableModal";
 
 const router = createBrowserRouter([
   {
@@ -77,6 +79,7 @@ function AppWithToast() {
     <>
       <RouterProvider router={router} />
       <ToastContainer toasts={toasts} removeToast={removeToast} />
+      <ServiceUnavailableModal />
     </>
   );
 }
@@ -84,13 +87,15 @@ function AppWithToast() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <PendingUsersProvider>
-            <AppWithToast />
-          </PendingUsersProvider>
-        </NotificationProvider>
-      </AuthProvider>
+      <ServiceStatusProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <PendingUsersProvider>
+              <AppWithToast />
+            </PendingUsersProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      </ServiceStatusProvider>
     </ThemeProvider>
   );
 }

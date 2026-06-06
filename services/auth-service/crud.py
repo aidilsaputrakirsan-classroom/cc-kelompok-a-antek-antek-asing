@@ -1,0 +1,479 @@
+from datetime import datetime, timezone
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
+from typing import Optional
+from models import User, Category, Ticket, UserRole, UserStatus, UserDepartment, TicketStatus, ApprovalLog, Department, AVATAR_COUNT, Notification, NotificationType
+from schemas import (
+    UserCreate, CategoryCreate, CategoryUpdate, TicketCreate,
+    TicketUpdateEmployee, TicketUpdateAdmin, ApproveUserRequest, RejectUserRequest
+)
+from sqlalchemy.exc import IntegrityError
+from auth import hash_password, verify_password
+
+# --- VALIDATION ---
+def validate_avatar_index(index: int):
+    """Validate avatar index is within valid range"""
+    if not isinstance(index, int):
+        raise ValueError("Avatar index must be integer")
+    if index < 0 or index >= AVATAR_COUNT:
+        raise ValueError(f"Invalid avatar index. Must be between 0 and {AVATAR_COUNT - 1}")
+
+# --- NOTIFICATIONS ---
+def create_notification(db: Session, user_id: int, title: str, message: str, notification_type: NotificationType, reference_id: Optional[int] = None) -> Notification:
+    notif = Notification(
+        user_id=user_id,
+        title=title,
+        message=message,
+        type=notification_type,
+        reference_id=reference_id
+    )
+    db.add(notif)
+    db.commit()
+    db.refresh(notif)
+    return notif
+
+def get_user_notifications(db: Session, user_id: int, skip: int = 0, limit: int = 20):
+    query = db.query(Notification).filter(Notification.user_id == user_id)
+    total = query.count()
+    unread_count = query.filter(Notification.is_read == False).count()
+    items = query.order_by(Notification.created_at.desc()).offset(skip).limit(limit).all()
+    return {"total": total, "unread_count": unread_count, "items": items}
+
+def mark_notification_read(db: Session, notification_id: int, user_id: int) -> bool:
+    notif = db.query(Notification).filter(Notification.id == notification_id, Notification.user_id == user_id).first()
+    if not notif:
+        return False
+    notif.is_read = True
+    db.commit()
+    return True
+
+def mark_all_notifications_read(db: Session, user_id: int) -> int:
+    result = db.query(Notification).filter(Notification.user_id == user_id, Notification.is_read == False).update({"is_read": True})
+    db.commit()
+    return result
+
+def resolve_related_notifications(db: Session, notification_type: NotificationType, reference_id: int):
+    """Mark all notifications of specific type and reference as read"""
+    db.query(Notification).filter(Notification.type == notification_type, Notification.reference_id == reference_id, Notification.is_read == False).update({"is_read": True})
+    db.commit()
+
+# --- USER ---
+def create_user(db: Session, user_data: UserCreate, default_role: UserRole = UserRole.employee, auto_active: bool = False) -> User:
+    existing = db.query(User).filter(User.email == user_data.email).first()
+    if existing:
+        return None
+    db_user = User(
+        email=user_data.email,
+        name=user_data.name,
+        hashed_password=hash_password(user_data.password),
+        role=default_role,
+        status=UserStatus.active if auto_active else UserStatus.pending,
+        is_active=auto_active
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    
+    if not auto_active:
+        superadmins = db.query(User).filter(User.role == UserRole.superadmin, User.is_active == True).all()
+        for sa in superadmins:
+            create_notification(db, sa.id, "Pending User Approval", f"New user {user_data.name} is waiting for approval.", NotificationType.user_pending, db_user.id)
+            
+    return db_user
+
+def authenticate_user(db: Session, email: str, password: str) -> User | None:
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return None
+    if not verify_password(password, user.hashed_password):
+        return None
+    return user
+
+def get_users(db: Session, skip: int = 0, limit: int = 20, allowed_roles: Optional[list[UserRole]] = None):
+    query = db.query(User).options(joinedload(User.department_rel))
+    # Only show ACTIVE users in Team Member list
+    query = query.filter(User.status == UserStatus.active)
+    if allowed_roles:
+        query = query.filter(User.role.in_(allowed_roles))
+    total = query.count()
+    users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
+    
+    return {"total": total, "items": users}
+
+def update_user_role(db: Session, user_id: int, new_role: UserRole) -> User | None:
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return None
+    db_user.role = new_role
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def update_user_department(db: Session, user_id: int, new_department_id: int) -> User | None:
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return None
+    db_user.department_id = new_department_id
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def update_user_profile(db: Session, user_id: int, update_data: dict) -> User | None:
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return None
+    for field, value in update_data.items():
+        setattr(db_user, field, value)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def create_superadmin(db: Session, email: str, password: str) -> None:
+    """Helper specifically for seeding the superadmin based on env variables"""
+    existing_admin = db.query(User).filter(User.email == email).first()
+    if not existing_admin:
+        sa = User(
+            email=email,
+            name="System Superadmin",
+            hashed_password=hash_password(password),
+            role=UserRole.superadmin,
+            status=UserStatus.active,
+            is_active=True,
+            must_change_password=True  # Allow initial login without forced password change
+            # must_change_password=True  # ini kalo mau paksa ganti password setelah login pertama
+        )
+        db.add(sa)
+        db.commit()
+
+def change_user_password(db: Session, user: User, new_password: str) -> bool:
+    user.hashed_password = hash_password(new_password)
+    user.must_change_password = False
+    db.commit()
+    db.refresh(user)
+    return True
+
+def update_user_avatar(db: Session, user_id: int, avatar_index: int) -> User | None:
+    """Update user avatar with validation"""
+    validate_avatar_index(avatar_index)
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return None
+    db_user.avatar_index = avatar_index
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def update_user_profile(db: Session, user_id: int, name: Optional[str] = None, email: Optional[str] = None) -> User | None:
+    """Update user profile (name and/or email)"""
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return None
+    
+    # Check if email is being changed and if it's already taken
+    if email and email != db_user.email:
+        existing_email = db.query(User).filter(User.email == email, User.id != user_id).first()
+        if existing_email:
+            raise ValueError("Email sudah terdaftar")
+        db_user.email = email
+    
+    if name:
+        db_user.name = name
+    
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+# --- APPROVAL WORKFLOW ---
+def get_pending_users(db: Session, skip: int = 0, limit: int = 20):
+    query = db.query(User).options(joinedload(User.department_rel)).filter(User.status == UserStatus.pending)
+    total = query.count()
+    users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
+    
+    return {"total": total, "items": users}
+
+
+def approve_user(db: Session, user_id: int, data: ApproveUserRequest, admin_id: int) -> User | None:
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return None
+    if db_user.status != UserStatus.pending:
+        return None  # hanya user PENDING yang bisa di-approve
+
+    now = datetime.now(timezone.utc)
+    db_user.status = UserStatus.active
+    db_user.is_active = True
+    db_user.department_id = data.department_id
+    db_user.approved_by = admin_id
+    db_user.approved_at = now
+
+    # Audit log
+    log = ApprovalLog(
+        user_id=user_id,
+        action="APPROVED",
+        department_assigned=None,
+        performed_by=admin_id,
+        performed_at=now,
+    )
+    db.add(log)
+    
+    # Dismiss notification
+    resolve_related_notifications(db, NotificationType.user_pending, user_id)
+    
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+def reject_user(db: Session, user_id: int, admin_id: int, notes: Optional[str] = None) -> User | None:
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return None
+    if db_user.status != UserStatus.pending:
+        return None  # hanya user PENDING yang bisa di-reject
+
+    now = datetime.now(timezone.utc)
+    db_user.status = UserStatus.rejected
+    db_user.is_active = False
+
+    # Audit log
+    log = ApprovalLog(
+        user_id=user_id,
+        action="REJECTED",
+        performed_by=admin_id,
+        performed_at=now,
+        notes=notes,
+    )
+    db.add(log)
+    
+    # Dismiss notification
+    resolve_related_notifications(db, NotificationType.user_pending, user_id)
+    
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+def get_approval_logs(db: Session, user_id: Optional[int] = None, skip: int = 0, limit: int = 50):
+    query = db.query(ApprovalLog)
+    if user_id:
+        query = query.filter(ApprovalLog.user_id == user_id)
+    total = query.count()
+    logs = query.order_by(ApprovalLog.performed_at.desc()).offset(skip).limit(limit).all()
+    return {"total": total, "items": logs}
+
+# --- CATEGORY ---
+def create_category(db: Session, cat_data: CategoryCreate) -> Category:
+    db_cat = Category(**cat_data.model_dump())
+    db.add(db_cat)
+    db.commit()
+    db.refresh(db_cat)
+    return db_cat
+
+def get_categories(db: Session):
+    return db.query(Category).filter(Category.deleted_at.is_(None)).order_by(Category.name.asc()).all()
+
+def update_category(db: Session, cat_id: int, cat_data: CategoryUpdate) -> Category | None:
+    db_cat = db.query(Category).filter(Category.id == cat_id).first()
+    if not db_cat:
+        return None
+    update_data = cat_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_cat, field, value)
+    db.commit()
+    db.refresh(db_cat)
+    return db_cat
+
+def delete_category(db: Session, cat_id: int) -> bool:
+    db_cat = db.query(Category).filter(Category.id == cat_id).first()
+    
+    # 1. Handle not found or already deleted
+    if not db_cat or db_cat.deleted_at is not None:
+        return False
+        
+    # 2. Optimized Data Integrity Guard (Using first/exists instead of count)
+    ticket_exists = db.query(Ticket).filter(Ticket.category_id == cat_id).first()
+    if ticket_exists:
+        raise ValueError("Category cannot be deleted because it is still used by existing ticket(s).")
+        
+    # 3. DB-Level Safety Fallback & Soft Delete
+    try:
+        db_cat.deleted_at = datetime.now(timezone.utc)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise
+        
+    return True
+
+# --- DEPARTMENT ---
+def create_department(db: Session, dept_data) -> Department:
+    db_dept = Department(**dept_data.model_dump())
+    db.add(db_dept)
+    db.commit()
+    db.refresh(db_dept)
+    return db_dept
+
+def get_departments(db: Session):
+    return db.query(Department).order_by(Department.name.asc()).all()
+
+def update_department(db: Session, dept_id: int, dept_data) -> Department | None:
+    db_dept = db.query(Department).filter(Department.id == dept_id).first()
+    if not db_dept:
+        return None
+    update_data = dept_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_dept, field, value)
+    db.commit()
+    db.refresh(db_dept)
+    return db_dept
+
+def delete_department(db: Session, dept_id: int) -> bool:
+    db_dept = db.query(Department).filter(Department.id == dept_id).first()
+    if not db_dept:
+        return False
+    db.delete(db_dept)
+    db.commit()
+    return True
+
+# --- TICKET ---
+def create_ticket(db: Session, ticket_data: TicketCreate, requester_id: int) -> Ticket:
+    db_ticket = Ticket(
+        **ticket_data.model_dump(),
+        requester_id=requester_id
+    )
+    db.add(db_ticket)
+    db.commit()
+    db.refresh(db_ticket)
+    
+    # Notify Admins and IT Employees
+    notifiers = db.query(User).filter(User.role.in_([UserRole.admin, UserRole.it_employee]), User.is_active == True).all()
+    for n_user in notifiers:
+        create_notification(db, n_user.id, "New Ticket Created", f"Ticket '{ticket_data.title}' needs attention.", NotificationType.new_ticket, db_ticket.id)
+        
+    return db_ticket
+
+def get_tickets(db: Session, skip: int = 0, limit: int = 20, requester_id: Optional[int] = None):
+    query = db.query(Ticket)
+    if requester_id is not None:
+        query = query.filter(Ticket.requester_id == requester_id)
+        
+    total = query.count()
+    tickets = query.order_by(Ticket.created_at.desc()).offset(skip).limit(limit).all()
+    return {"total": total, "items": tickets}
+
+def get_ticket(db: Session, ticket_id: int) -> Ticket | None:
+    return db.query(Ticket).filter(Ticket.id == ticket_id).first()
+
+def update_ticket_employee(db: Session, ticket_id: int, ticket_data: TicketUpdateEmployee, requester_id: int) -> Ticket | None:
+    db_ticket = db.query(Ticket).filter(Ticket.id == ticket_id, Ticket.requester_id == requester_id).first()
+    if not db_ticket:
+        return None
+        
+    # Prevent edits if ticket is already resolved or closed (only open and in_progress are mutable by employee)
+    if db_ticket.status in [TicketStatus.resolved, TicketStatus.closed]:
+        raise ValueError("Cannot modify ticket that has been resolved or closed")
+        
+    update_data = ticket_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_ticket, field, value)
+    db.commit()
+    db.refresh(db_ticket)
+    return db_ticket
+
+def update_ticket_admin(db: Session, ticket_id: int, ticket_data: TicketUpdateAdmin) -> Ticket | None:
+    db_ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not db_ticket:
+        return None
+    update_data = ticket_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_ticket, field, value)
+    db.commit()
+    db.refresh(db_ticket)
+    
+    # Check if resolved to notify owner
+    if ticket_data.status in [TicketStatus.resolved, TicketStatus.closed]:
+        resolve_related_notifications(db, NotificationType.new_ticket, ticket_id)
+        create_notification(db, db_ticket.requester_id, "Ticket Resolved", f"Your ticket '{db_ticket.title}' has been fixed/resolved.", NotificationType.ticket_resolved, db_ticket.id)
+
+    return db_ticket
+
+def delete_ticket(db: Session, ticket_id: int) -> bool:
+    db_ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not db_ticket:
+        return False
+    db.delete(db_ticket)
+    db.commit()
+    return True
+
+# --- DASHBOARD ---
+def get_dashboard_metrics(db: Session):
+    # Total tickets by status
+    status_counts = db.query(Ticket.status, func.count(Ticket.id)).group_by(Ticket.status).all()
+    status_dict = {status.value: count for status, count in status_counts}
+    
+    # Total tickets by category
+    category_counts = db.query(Category.name, func.count(Ticket.id)).join(Ticket, Category.id == Ticket.category_id).group_by(Category.name).all()
+    category_dict = {name: count for name, count in category_counts}
+    
+    # Optional additions: priority counts
+    priority_counts = db.query(Ticket.priority, func.count(Ticket.id)).group_by(Ticket.priority).all()
+    priority_dict = {priority.value: count for priority, count in priority_counts}
+    total_tickets = db.query(Ticket).count()
+    return {
+        "total_tickets": total_tickets,
+        "by_status": status_dict,
+        "by_category": category_dict,
+        "by_priority": priority_dict
+    }
+
+def get_department_analytics(db: Session):
+    """Get ticket count per department (from requesters)"""
+    dept_counts = db.query(
+        Department.name,
+        func.count(Ticket.id).label('count')
+    ).outerjoin(
+        User, Department.id == User.department_id
+    ).outerjoin(
+        Ticket, User.id == Ticket.requester_id
+    ).group_by(Department.id, Department.name).order_by(func.count(Ticket.id).desc()).all()
+    
+    return [{"department": name, "tickets": count} for name, count in dept_counts]
+
+def get_response_time_analytics(db: Session):
+    """Get average response time (hours) per IT employee"""
+    from sqlalchemy import extract, case
+    
+    it_employees = db.query(User).filter(
+        User.role.in_([UserRole.it_employee, UserRole.admin])
+    ).all()
+    
+    results = []
+    for employee in it_employees:
+        tickets = db.query(Ticket).filter(Ticket.assignee_id == employee.id).all()
+        
+        if not tickets:
+            results.append({
+                "employee": employee.name,
+                "avg_response_hours": 0,
+                "ticket_count": 0
+            })
+            continue
+        
+        total_hours = 0
+        count = 0
+        for ticket in tickets:
+            if ticket.created_at and ticket.updated_at:
+                time_diff = ticket.updated_at - ticket.created_at
+                hours = time_diff.total_seconds() / 3600
+                total_hours += hours
+                count += 1
+        
+        avg_hours = total_hours / count if count > 0 else 0
+        results.append({
+            "employee": employee.name,
+            "avg_response_hours": round(avg_hours, 2),
+            "ticket_count": len(tickets)
+        })
+    
+    return sorted(results, key=lambda x: x['avg_response_hours'], reverse=True)

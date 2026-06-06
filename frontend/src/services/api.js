@@ -2,6 +2,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost";
 const TOKEN_KEY = "ticketflow_auth_token";
 
 let unauthorizedHandler = null;
+let serviceUnavailableHandler = null;
 
 function buildError(status, detail) {
   let msg = detail;
@@ -50,13 +51,17 @@ export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler;
 }
 
+export function setServiceUnavailableHandler(handler) {
+  serviceUnavailableHandler = handler;
+}
+
 function authHeaders() {
   const token = tokenStorage.getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 async function request(path, options = {}) {
-  const { body, isForm = false, headers = {}, ...rest } = options;
+  const { body, isForm = false, headers = {}, skip503Handler = false, ...rest } = options;
   const requestHeaders = {
     ...authHeaders(),
     ...headers,
@@ -76,30 +81,58 @@ async function request(path, options = {}) {
     }
   }
 
-  let response;
-  try {
-    response = await fetch(`${API_URL}${path}`, init);
-  } catch (err) {
-    throw buildError(503, "Service temporarily unavailable");
-  }
-
-  if (response.status === 401) {
-    tokenStorage.clearToken();
-    if (typeof unauthorizedHandler === "function") {
-      unauthorizedHandler();
+  while (true) {
+    let response;
+    try {
+      response = await fetch(`${API_URL}${path}`, init);
+    } catch (err) {
+      const error = buildError(503, "Service temporarily unavailable");
+      if (typeof serviceUnavailableHandler === "function" && !skip503Handler) {
+        try {
+          await new Promise((resolve, reject) => {
+            serviceUnavailableHandler(path, resolve, reject);
+          });
+          continue;
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
     }
-  }
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw buildError(response.status, normalizeDetail(errorData.detail));
-  }
+    if (response.status === 401) {
+      tokenStorage.clearToken();
+      if (typeof unauthorizedHandler === "function") {
+        unauthorizedHandler();
+      }
+    }
 
-  if (response.status === 204) {
-    return null;
-  }
+    if (response.status === 502 || response.status === 503 || response.status === 504) {
+      const error = buildError(response.status, "Service temporarily unavailable");
+      if (typeof serviceUnavailableHandler === "function" && !skip503Handler) {
+        try {
+          await new Promise((resolve, reject) => {
+            serviceUnavailableHandler(path, resolve, reject);
+          });
+          continue;
+        } catch {
+          throw error;
+        }
+      }
+      throw error;
+    }
 
-  return response.json();
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw buildError(response.status, normalizeDetail(errorData.detail));
+    }
+
+    if (response.status === 204) {
+      return null;
+    }
+
+    return response.json();
+  }
 }
 
 export const authApi = {
@@ -256,7 +289,16 @@ export const itemApi = {
 
 export async function checkHealth() {
   try {
-    const data = await request("/health");
+    const data = await request("/health", { skip503Handler: true });
+    return data.status === "healthy";
+  } catch {
+    return false;
+  }
+}
+
+export async function checkAuthHealth() {
+  try {
+    const data = await request("/auth/health", { skip503Handler: true });
     return data.status === "healthy";
   } catch {
     return false;
