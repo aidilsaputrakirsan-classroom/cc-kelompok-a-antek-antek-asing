@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, Tags, Ticket, User, Users, Clock, Building2, Package } from "lucide-react";
+import { Activity, ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, Tags, Ticket, User, Users, Clock, Building2, Package } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { getAvatarPath } from "../constants/avatars";
 import NotificationBell from "../components/NotificationBell";
@@ -81,6 +81,7 @@ export default function AppShell() {
         { to: "/admin?tab=departments", label: "Departments", tab: "departments", icon: Building2 },
         { to: "/admin?tab=categories", label: "Categories", tab: "categories", icon: Tags },
         { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+        { to: "/status", label: "System Status", tab: "status", icon: Activity },
       ];
     }
 
@@ -89,6 +90,7 @@ export default function AppShell() {
         { to: "/admin", label: "Overview", tab: "overview", icon: LayoutDashboard },
         { to: "/admin?tab=tickets", label: "All Tickets", tab: "tickets", icon: Ticket },
         { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+        { to: "/status", label: "System Status", tab: "status", icon: Activity },
       ];
     }
 
@@ -96,6 +98,7 @@ export default function AppShell() {
       return [
         { to: "/admin", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
         { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+        { to: "/status", label: "System Status", tab: "status", icon: Activity },
       ];
     }
 
@@ -103,6 +106,7 @@ export default function AppShell() {
       { to: "/employee", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
       { to: "/employee?tab=my-ticket", label: "My Ticket", tab: "my-ticket", icon: Ticket },
       { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+      { to: "/status", label: "System Status", tab: "status", icon: Activity },
     ];
   }, [isAdminLike, user?.role]);
 
@@ -139,6 +143,10 @@ export default function AppShell() {
 
     if (location.pathname.startsWith("/profile")) {
       return ["Dashboard", "Profile"];
+    }
+
+    if (location.pathname.startsWith("/status")) {
+      return ["Dashboard", "System Status"];
     }
 
     return ["Dashboard"];
@@ -235,6 +243,11 @@ export default function AppShell() {
                       const expectedTab = new URLSearchParams(item.to.split("?")[1]).get("tab");
                       return currentTab === expectedTab;
                     }
+                  }
+
+                  // Exact path match (e.g. /status, /items)
+                  if (!item.to.includes("?") && location.pathname === item.to) {
+                    return true;
                   }
 
                   // Fallback for other routes

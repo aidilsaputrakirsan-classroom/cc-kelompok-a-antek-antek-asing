@@ -19,6 +19,7 @@ import EmployeeTicketDetailPage from "./pages/EmployeeTicketDetailPage";
 import EmployeeTicketEditPage from "./pages/EmployeeTicketEditPage";
 import ProfilePage from "./pages/ProfilePage";
 import ItemsPage from "./pages/ItemsPage";
+import StatusPage from "./pages/StatusPage";
 import { ServiceStatusProvider } from "./context/ServiceStatusContext";
 import ServiceUnavailableModal from "./components/ServiceUnavailableModal";
 
@@ -48,6 +49,7 @@ const router = createBrowserRouter([
         children: [
           { path: "/profile", element: <ProfilePage /> },
           { path: "/items", element: <ItemsPage /> },
+          { path: "/status", element: <StatusPage /> },
           {
             path: "/admin",
             element: <ProtectedRoute allowedRoles={["superadmin", "admin", "it_employee"]} />,
