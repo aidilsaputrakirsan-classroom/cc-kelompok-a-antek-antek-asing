@@ -35,3 +35,18 @@ def check_db_connection() -> bool:
         return True
     except Exception:
         return False
+
+
+def run_startup_migrations() -> None:
+    """Apply small compatibility migrations for existing Docker volumes."""
+    statements = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id INTEGER REFERENCES departments(id)",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS status userstatus NOT NULL DEFAULT 'active'",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by INTEGER REFERENCES users(id)",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP WITH TIME ZONE",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_index INTEGER NOT NULL DEFAULT 0",
+    ]
+    with engine.begin() as conn:
+        for statement in statements:
+            conn.execute(text(statement))
