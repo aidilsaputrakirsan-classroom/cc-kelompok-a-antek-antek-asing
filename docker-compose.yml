@@ -155,7 +155,9 @@ services:
     volumes:
       - ./services/gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
-      - cloudnet
+      cloudnet:
+        aliases:
+          - backend
     depends_on:
       auth-service:
         condition: service_healthy

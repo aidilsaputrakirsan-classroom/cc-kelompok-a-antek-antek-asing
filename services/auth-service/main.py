@@ -12,7 +12,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from database import engine, get_db, SessionLocal, check_db_connection
+from database import engine, get_db, SessionLocal, check_db_connection, run_startup_migrations
 from models import Base, User, UserRole, UserStatus, UserDepartment, Department, NotificationType
 from schemas import (
     UserCreate, UserResponse, RegisterResponse, LoginRequest, TokenResponse,
@@ -38,6 +38,7 @@ setup_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    run_startup_migrations()
     
     db = SessionLocal()
     try:
