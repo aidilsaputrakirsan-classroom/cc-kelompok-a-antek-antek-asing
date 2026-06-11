@@ -74,7 +74,7 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres123@auth-db:5432/auth_db
-      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production-min-32-chars}
+      SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 60
       SERVICE_NAME: auth-service
@@ -147,7 +147,7 @@ services:
   # API GATEWAY
   # ================================
   gateway:
-    image: nginx:alpine
+    image: nginx:1.25-alpine
     container_name: antick-async-gateway
     restart: unless-stopped
     ports:
