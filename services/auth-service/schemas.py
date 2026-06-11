@@ -23,8 +23,8 @@ class DepartmentUpdate(BaseModel):
 # --- User ---
 class UserCreate(BaseModel):
     email: str = Field(..., examples=["user@student.itk.ac.id"])
-    name: str = Field(..., min_length=2, max_length=100, examples=["Aidil Saputra"])
-    password: str = Field(..., min_length=8, examples=["Password123!"])
+    name: str = Field(..., min_length=2, max_length=200, examples=["Aidil Saputra"])
+    password: str = Field(..., min_length=8, max_length=128, examples=["Password123!"])
 
     @field_validator("email")
     @classmethod
@@ -37,9 +37,9 @@ class UserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def validate_password_strength(cls, value):
-        password_regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#_])[A-Za-z\d@$!%*?&#_]{8,}$"
+        password_regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&#_]{8,128}$"
         if not re.match(password_regex, value):
-            raise ValueError("Password terlalu lemah.")
+            raise ValueError("Password harus mengandung minimal 1 huruf besar, 1 angka, dan maksimal 128 karakter.")
         return value
 
 class UserResponse(BaseModel):
@@ -72,7 +72,7 @@ class UserAvatarUpdate(BaseModel):
     avatar_index: int = Field(..., ge=0, le=9)
 
 class UserProfileUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    name: Optional[str] = Field(None, min_length=2, max_length=200)
     email: Optional[str] = Field(None)
     
     @field_validator("email")
@@ -108,9 +108,9 @@ class ChangePasswordRequest(BaseModel):
     @field_validator("new_password")
     @classmethod
     def validate_password_strength(cls, value):
-        password_regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#_])[A-Za-z\d@$!%*?&#_]{8,}$"
+        password_regex = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&#_]{8,128}$"
         if not re.match(password_regex, value):
-            raise ValueError("Katasandi baru terlalu lemah. Minimal 8 karakter mencakup huruf besar, kecil, angka, dan simbol khusus.")
+            raise ValueError("Katasandi baru terlalu lemah. Minimal 8 karakter mencakup huruf besar, kecil, angka, dan maksimal 128 karakter.")
         return value
 
 # --- Category ---
