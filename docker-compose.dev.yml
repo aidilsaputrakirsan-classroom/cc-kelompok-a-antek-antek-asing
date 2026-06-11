@@ -1,0 +1,55 @@
+# ==============================================
+# Docker Compose — DEVELOPMENT OVERRIDE
+# Antick Async (Cloud Kelompok A)
+# ==============================================
+# Cara pakai (digabung dengan compose utama):
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#   atau: make dev
+#
+# Yang berbeda dari production:
+#   - auth-service & item-service: hot-reload (uvicorn --reload) + source di-mount
+#   - Port service & database diekspos ke host untuk debugging:
+#       auth-service → localhost:8001     item-service → localhost:8002
+#       auth-db      → localhost:5433     item-db      → localhost:5434
+#   - cloudflared TIDAK dijalankan (diberi profile "production-only")
+#   - LOG_LEVEL dinaikkan ke DEBUG
+#
+# Catatan frontend:
+#   Untuk hot-reload frontend jalankan Vite langsung di host:
+#     cd frontend && npm run dev   → http://localhost:5173
+#   (container frontend tetap menyajikan hasil build terakhir di gateway)
+
+services:
+  auth-db:
+    ports:
+      - "5433:5432"   # akses psql/GUI dari host: localhost:5433
+
+  item-db:
+    ports:
+      - "5434:5432"   # akses psql/GUI dari host: localhost:5434
+
+  auth-service:
+    # Mount source code → perubahan file langsung memicu reload uvicorn
+    volumes:
+      - ./services/auth-service:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8001:8001"   # akses langsung tanpa gateway (debug/Swagger)
+    environment:
+      ENVIRONMENT: development
+      LOG_LEVEL: DEBUG
+
+  item-service:
+    volumes:
+      - ./services/item-service:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+    ports:
+      - "8002:8002"
+    environment:
+      LOG_LEVEL: DEBUG
+
+  # Tunnel tidak diperlukan saat development lokal.
+  # Profile ini tidak pernah diaktifkan di mode dev, sehingga container tidak dibuat.
+  cloudflared:
+    profiles:
+      - production-only
