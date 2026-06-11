@@ -1,3 +1,7 @@
+"""
+Authentication service main application and endpoints.
+Handles routing, CORS, rate limiting, and dependency injection for Auth.
+"""
 from typing import Optional
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, Query, Request, status
