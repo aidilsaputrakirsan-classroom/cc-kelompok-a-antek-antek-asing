@@ -120,58 +120,79 @@ Menerima notifikasi status tiket
 
 
 
-## 🏗️ Architecture
+## 🏗️ Microservices Architecture Overview
 ```
-[Client / User]
-       │
-     (HTTPS)
-       │
-       ▼
-[React Frontend (Vite)]
-       │
-   REST API (HTTP)
-       │
-       ▼
-[Python Backend]
- (FastAPI/Django)
-       │
-       ▼
-[Database]
- (PostgreSQL/MYSQL)
+[Client / Browser]
+        │
+      (HTTPS)
+        │
+        ▼
+[Cloudflare Tunnel]
+        │
+        ▼
+[Nginx API Gateway (Port 80)]
+   │                   │                  │
+   ▼                   ▼                  ▼
+/auth/*             /items/*              /
+   │                   │                  │
+   ▼                   ▼                  ▼
+[Auth Service]      [Item Service]     [React SPA]
+ (FastAPI)           (FastAPI)
+   │                   │
+   ▼                   ▼
+[auth_db]           [item_db]
+(PostgreSQL)        (PostgreSQL)
 ```
 
-**Penjelasan Arsitektur**
+## 🧩 Backend Services
 
-Client/user pengguna dapat mengakses aplikasi TickTrack melalui browser menggunakan protokol HTTPS agar memastikan komunikasi aman. 
+1. **Auth Service (Port 8001)**: Menangani registrasi, login JWT, manajemen role, departemen, dan profil user. Mendelegasikan verifikasi token untuk service lain.
+2. **Item Service (Port 8002)**: Menangani CRUD resource (Items) dengan berinteraksi ke Auth Service secara internal untuk memvalidasi token JWT.
+3. **Gateway (Nginx)**: *Reverse Proxy* dan *Rate Limiter* yang meneruskan *request* dari *client* ke service yang tepat.
 
-React Frontend (Vite) berfungsi usebagai antarmuka pengguna dengan menampilakn dashboard, form input ticket, monitoring performa serta berkomunikasi dengan backend untuk mengambil dan mengirim data
+## 🔐 Security Features
+- **JWT Authentication**: Akses resource dilindungi dengan token.
+- **Role-based Access Control (RBAC)**: Pembatasan rute berdasarkan role (Employee, Admin, Superadmin).
+- **Rate Limiting**: Nginx Gateway membatasi request per detik (`5r/s` untuk auth, `20r/s` untuk API umum) guna mencegah serangan *Brute Force* dan *DoS*.
+- **Input Validation**: Pydantic schema enforcing batas panjang string, regex password (huruf besar, angka, batas 128 karakter), dan *integer constraints*.
+- **Secret Management**: *Environment variables* digunakan secara ketat tanpa ada *hardcoded credentials* di repositori.
 
-Python Backend berfungsi dalam menjalankan logika bisnis aplikasi seperti autentifikasi pengguna, CRUD tiket, serta perhitungan KPI.
+## 📈 Monitoring Features
+- **Structured Logging**: Log diformat seragam dengan JSON-compatible format di semua service.
+- **Metrics Endpoint**: Tersedia endpoint `/metrics` di setiap *service* untuk di-*scrape* oleh Prometheus.
+- **Health Checks**: Endpoint `/health` dan integrasi *Docker Compose healthchecks*.
+- **Status Dashboard**: Endpoint internal untuk memantau performa dan respons waktu sistem.
 
-PostgreSQL Database berfungsi untuk menyimpan data terstruktur seperti data pengguna, data tiket, status pekerjaan serta riwayat aktivitas.
+## ⚙️ Environment Variables (.env)
+Gunakan file template `.env.example` yang tersedia di masing-masing service (`services/auth-service/` dan `services/item-service/`) lalu ubah menjadi `.env`.
 
-## 🚀 Getting Started
-
-### Prasyarat
-- Python 3.10+
-- Node.js 18+
-- Git
-
-### Backend
+**Contoh Auth Service `.env`:**
+```ini
+DATABASE_URL=postgresql://postgres:password@auth-db:5432/auth_db
+SECRET_KEY=YOUR_SECURE_SECRET_KEY_MIN_32_CHARS
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+SUPERADMIN_PASSWORD=YOUR_STRONG_PASSWORD
 ```
-cd backend  
-pip install -r requirements.txt  
-uvicorn main:app --reload --port 8000  
-```
-Untuk menjalankan backend, masuk ke folder backend lalu menginstall seluruh library yang dibutuhkan oleh backend. Setelan menginstall  maka uvicorn main:app --reload --port 8000  menjalankan server sehingga server dapat berjalan 
 
-### Frontend
+## 🚀 Running with Docker Compose
+
+Aplikasi dideploy menggunakan Docker Compose untuk orkestrasi seluruh arsitektur *microservices*.
+
+```bash
+# Build dan jalankan seluruh container
+docker compose up --build -d
+
+# Pantau logs dari backend
+docker compose logs -f auth-service item-service gateway
 ```
-cd frontend  
-npm install  
-npm run dev  
-```
-Untuk menjalankan frontend, masuk ke folder frontend, lalu menginstall seluruh library menggunakan npm install. Aplikasi React dapat berjalan dan terhubung ke backend 
+
+## 📚 API Documentation
+Dokumentasi interaktif OpenAPI (Swagger) dapat diakses di:
+- **Auth Service**: `http://localhost/auth/docs` (Via Gateway)
+- **Item Service**: `http://localhost/items/docs` (Via Gateway)
+
+Kontrak API lengkap juga tersedia di `docs/api-contract.md`.
 
 
 
