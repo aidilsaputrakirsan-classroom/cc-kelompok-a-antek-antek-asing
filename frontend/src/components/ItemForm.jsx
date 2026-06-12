@@ -161,10 +161,14 @@ const styles = {
   },
   row: {
     display: "flex",
+    flexWrap: "wrap",
     gap: "1rem",
   },
   field: {
-    flex: 1,
+    // flex-basis 160px + wrap: berdampingan saat lebar cukup,
+    // turun ke baris baru saat kolom sempit (form ada di sidebar lg:col-span-4)
+    flex: "1 1 160px",
+    minWidth: 0,
     display: "flex",
     flexDirection: "column",
     gap: "0.25rem",
@@ -175,6 +179,9 @@ const styles = {
     color: "#555",
   },
   input: {
+    width: "100%",
+    minWidth: 0,
+    boxSizing: "border-box",
     padding: "0.6rem 0.8rem",
     border: "2px solid #ddd",
     borderRadius: "6px",
@@ -183,6 +190,7 @@ const styles = {
   },
   actions: {
     display: "flex",
+    flexWrap: "wrap",
     gap: "0.75rem",
     marginTop: "0.5rem",
   },
