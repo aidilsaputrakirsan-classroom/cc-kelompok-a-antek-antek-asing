@@ -108,17 +108,15 @@ Menerima notifikasi status tiket
 
 ## 🛠️ Tech Stack
 
-| Teknologi | Fungsi |
+| Layer | Teknologi |
 |------------|---------|
-| FastAPI | Backend REST API |
-| React (Vite) | Frontend SPA |
-| PostgreSQL | Database |
-| Docker | Containerization|
-| Nginx| API Gateway |
-| GitHub Actions | CI/CD |
-| Cloudflare Tunnel | Cloud Deployment & HTTPS |
-| JWT | Authentication|
-| Pydantic | Input Validation |
+| Backend | **FastAPI** (Python 3.12), SQLAlchemy ORM, Pydantic v2 + pydantic-settings, slowapi (rate limit), JWT (python-jose style, HS256) |
+| Frontend | **React 19 + Vite 7**, react-router-dom 7, Tailwind CSS 3, axios/fetch, lucide-react, @splinetool/react-spline (3D scene), Vitest + Testing Library |
+| Database | **PostgreSQL 16 (alpine)** — 2 database terpisah (database-per-service) |
+| Gateway | **Nginx 1.25** (reverse proxy, rate limiting, CORS) |
+| Container | **Docker + Docker Compose** (7 services) |
+| CI/CD | **GitHub Actions** (`.github/workflows/ci.yml`, `health-check.yml`) |
+| Deployment | VPS + **Cloudflare Tunnel** (`cloudflared` container) |
 
 
 ## 🏗️ Microservices Architecture Overview
