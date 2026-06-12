@@ -1,11 +1,19 @@
 .PHONY: up build down clean restart logs logs-auth logs-item logs-gateway logs-frontend \
-        ps health shell-auth shell-item shell-auth-db shell-item-db
+        ps health shell-auth shell-item shell-auth-db shell-item-db dev dev-down
 
 # ==================== START / STOP ====================
 
 # Start semua services (tanpa rebuild)
 up:
 	docker compose up -d
+
+# Development mode: hot-reload backend + port debug terekspos (tanpa cloudflared)
+dev:
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+
+# Stop development mode
+dev-down:
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 
 # Build ulang semua images + start
 build:
