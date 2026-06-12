@@ -46,6 +46,11 @@ services:
         limits:
           cpus: "1.0"
           memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   item-db:
     image: postgres:16-alpine
@@ -70,6 +75,11 @@ services:
         limits:
           cpus: "1.0"
           memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ================================
   # BACKEND MICROSERVICES
@@ -167,6 +177,11 @@ services:
         limits:
           cpus: "0.50"
           memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ================================
   # API GATEWAY
@@ -201,6 +216,11 @@ services:
         limits:
           cpus: "0.50"
           memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # ================================
   # CLOUDFLARE TUNNEL
@@ -222,6 +242,11 @@ services:
         limits:
           cpus: "0.50"
           memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 # ==================== VOLUMES ====================
 volumes:

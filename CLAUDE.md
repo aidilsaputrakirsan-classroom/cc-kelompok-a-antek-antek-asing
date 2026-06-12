@@ -214,7 +214,8 @@ Login menolak status `PENDING`/`REJECTED`/`is_active=false`. Logout & ganti pass
 - **Dashboard**: `GET /dashboard`, `/dashboard/department-analytics`, `/dashboard/response-time-analytics`
 - **Items** (item-service): `GET|POST /items`, `GET /items/stats`, `GET|PUT|DELETE /items/{id}` —
   semua butuh Bearer token, scoped per `owner_id`
-- **Health/metrics**: `GET /health` (gateway inline), `/auth/health`, `/auth/metrics`, `/items/metrics`
+- **Health/metrics**: `GET /health` (gateway inline), `/auth/health`, `/auth/metrics`,
+  `/items/health`, `/items/metrics`
 
 Frontend menyimpan token di localStorage dengan key `ticketflow_auth_token` (`frontend/src/services/api.js`).
 
@@ -234,12 +235,18 @@ source di-mount, port debug terekspos (auth 8001, item 8002, auth-db 5433, item-
 `LOG_LEVEL=DEBUG`, cloudflared tidak dijalankan. Hot-reload frontend tetap via host:
 `cd frontend && npm run dev` (port 5173).
 
+**Mode production eksplisit** (`docker-compose.prod.yml`, via `make prod`): base compose +
+penegasan `ENVIRONMENT=production` & `LOG_LEVEL=INFO`. Base compose sendiri sudah
+production-safe, jadi deploy lama `docker compose up --build -d` tetap valid.
+`make status` = ringkasan `ps` + health gateway/auth/item.
+
 Dev tanpa Docker (legacy/parsial): backend `uvicorn main:app --reload` (port 8000).
 
 Urutan healthcheck compose: `auth-db → auth-service → item-service`, `item-db → item-service`,
 `gateway` start setelah semua healthy, lalu `cloudflared` start setelah gateway **healthy**.
 Semua service punya `restart: unless-stopped` + `deploy.resources.limits`
-(DB & FastAPI: 1 CPU/512M; frontend, gateway, cloudflared: 0.5 CPU/128M).
+(DB & FastAPI: 1 CPU/512M; frontend, gateway, cloudflared: 0.5 CPU/128M) + log rotation
+`json-file` 10MB × 3 file.
 
 **Migrasi data monolith → microservices**: `scripts/migrate_data.py` (idempotent,
 jalankan saat mode dev karena butuh port DB terekspos; lihat docstring script).
@@ -278,6 +285,13 @@ healthcheck gateway, `docker-compose.dev.yml`, `scripts/migrate_data.py`). Porsi
 **Belum dikerjakan**: porsi **Backend** — retry + exponential backoff & circuit breaker di
 `services/item-service/auth_client.py` (saat ini baru timeout 5s + error handling),
 graceful degradation (`/items/public`), dan `tests/integration/` (porsi QA workshop).
+
+**Status Modul 14 per role** (audit 2026-06-12): porsi **Backend** (structured logging,
+correlation ID, metrics + error alerting), **Frontend** (StatusPage + polish), dan
+**DevOps** (log rotation semua service, `docker-compose.prod.yml`, Makefile
+`dev`/`prod`/`logs`/`status`, fix route gateway `/items/health`, `scripts/logs.sh`) selesai.
+**Belum dikerjakan**: porsi **QA** — `docs/operations-guide.md` (cara cek health, baca log,
+trace correlation ID, troubleshooting).
 
 - `docs/member-Nanda-Aulia-Putri.md` masih berisi **konflik merge yang belum diresolve**
   (marker `<<<<<<< HEAD`). Perlu dibersihkan.
