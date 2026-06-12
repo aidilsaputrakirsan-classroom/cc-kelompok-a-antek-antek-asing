@@ -30,7 +30,10 @@ services:
     environment:
       POSTGRES_DB: auth_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
+      # Override via .env (POSTGRES_PASSWORD). Default dev: postgres123.
+      # Catatan: mengganti nilai ini TIDAK mengubah password volume DB yang
+      # sudah terlanjur di-init — hanya berlaku untuk volume baru.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
     volumes:
       - auth_db_data:/var/lib/postgresql/data
     networks:
@@ -59,7 +62,7 @@ services:
     environment:
       POSTGRES_DB: item_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
     volumes:
       - item_db_data:/var/lib/postgresql/data
     networks:
@@ -93,7 +96,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres123@auth-db:5432/auth_db
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres123}@auth-db:5432/auth_db
       SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 60
@@ -128,7 +131,7 @@ services:
     container_name: antick-async-item-service
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres123@item-db:5432/item_db
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres123}@item-db:5432/item_db
       AUTH_SERVICE_URL: http://auth-service:8001
       SERVICE_NAME: item-service
       LOG_LEVEL: INFO
@@ -206,7 +209,10 @@ services:
       frontend:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
+      # 127.0.0.1 (bukan localhost): nginx hanya listen IPv4 karena config
+      # di-mount read-only (entrypoint gagal menambah listener IPv6), sedangkan
+      # busybox wget me-resolve localhost ke ::1 tanpa fallback ke IPv4.
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/health"]
       interval: 15s
       timeout: 5s
       retries: 3

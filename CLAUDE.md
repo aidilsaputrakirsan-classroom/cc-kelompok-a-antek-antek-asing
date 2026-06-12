@@ -175,7 +175,7 @@ Tabel dibuat otomatis via `Base.metadata.create_all()` + `run_startup_migrations
 | Kredensial | Nilai (dev) | Lokasi |
 |---|---|---|
 | Superadmin seed | email `superadmin@admin.com` / password lihat `.env` (`SUPERADMIN_PASSWORD`) | di-seed otomatis saat startup auth-service; wajib ganti password saat login pertama (`must_change_password`) |
-| PostgreSQL (kedua DB) | user `postgres` / password `postgres123` | `docker-compose.yml` (auth-db & item-db) |
+| PostgreSQL (kedua DB) | user `postgres` / password via `.env` `POSTGRES_PASSWORD` (default dev `postgres123`) | `docker-compose.yml` (`${POSTGRES_PASSWORD:-postgres123}`) |
 | Database URL auth | `postgresql+psycopg://postgres:postgres123@auth-db:5432/auth_db` | env auth-service |
 | Database URL item | `postgresql+psycopg://postgres:postgres123@item-db:5432/item_db` | env item-service |
 | `SECRET_KEY` (JWT) | min 32 karakter, divalidasi saat startup (fail-fast) | `.env` root |
@@ -292,6 +292,18 @@ correlation ID, metrics + error alerting), **Frontend** (StatusPage + polish), d
 `dev`/`prod`/`logs`/`status`, fix route gateway `/items/health`, `scripts/logs.sh`) selesai.
 **Belum dikerjakan**: porsi **QA** — `docs/operations-guide.md` (cara cek health, baca log,
 trace correlation ID, troubleshooting).
+
+**Status Modul 15 per role** (audit 2026-06-12): porsi **DevOps selesai** — secret audit
+(parametrisasi `POSTGRES_PASSWORD`, `.env.example` diperbaiki), fix healthcheck gateway
+(IPv6 `localhost` → `127.0.0.1`), production di-restore & diverifikasi
+(`scripts/verify-deployment.sh` lolos 100% lokal + production). Rate limiting gateway
+sudah ada sejak sebelumnya. **Porsi role lain**: Backend (jawaban viva), Frontend
+(slide presentasi), QA (proofread docs, `docs/final-checklist.md`) — di luar repo/belum.
+Tag `v3.0.0` dibuat setelah PR modul 15 merge.
+
+⚠️ **Isu keamanan**: password superadmin asli sempat ter-commit di `.env.example`
+(riwayat git repo classroom masih memuatnya). **Disarankan mengganti
+`SUPERADMIN_PASSWORD` di `.env` production** karena nilai lama harus dianggap bocor.
 
 - `docs/member-Nanda-Aulia-Putri.md` masih berisi **konflik merge yang belum diresolve**
   (marker `<<<<<<< HEAD`). Perlu dibersihkan.

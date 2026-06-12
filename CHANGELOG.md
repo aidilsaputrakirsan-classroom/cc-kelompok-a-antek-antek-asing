@@ -30,6 +30,57 @@
 
 ---
 
+## [2026-06-12 10:50 WITA] — Modul 15 (porsi DevOps): secret audit, fix healthcheck gateway, restore production, verify script
+
+**Author**: Muhammad Fikri Haikal Ariadma (Lead DevOps) — dikerjakan via AI Agent (Claude)
+**Apa yang dirubah**:
+- `docker-compose.yml` — (a) **fix healthcheck gateway**: `wget http://localhost/health` →
+  `http://127.0.0.1/health`; (b) password PostgreSQL diparametrisasi:
+  `POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}` + DATABASE_URL kedua service
+  ikut substitusi (4 lokasi).
+- `.env.example` (root) — ditulis ulang: hapus `DATABASE_URL` monolith basi, ganti
+  `ALLOWED_ORIGINS` → `CORS_ORIGINS` (nama yang benar sesuai config), tambah
+  `ENVIRONMENT`/`LOG_LEVEL`/`POSTGRES_PASSWORD`, dan **ganti password superadmin asli
+  yang bocor dengan placeholder**.
+- `scripts/verify-deployment.sh` — **file baru**: verifikasi menyeluruh (container,
+  health, metrics, frontend, auth guard) untuk lokal maupun production URL.
+- Operasional (bukan file): stack production di-restart penuh — 7/7 container healthy,
+  https://antick-async.online & api 200 semua.
+
+**Kenapa dirubah**:
+Workshop 15.1 (secret audit) + Tugas Terstruktur Modul 15 DevOps ("pastikan deployment
+production running" + deployment verify). Rate limiting gateway (fokus DevOps lain) sudah
+terpasang sejak sebelumnya sehingga tidak disentuh.
+
+**Before**:
+- Healthcheck gateway gagal permanen saat container dibuat ulang: nginx hanya listen IPv4
+  (entrypoint gagal menambah listener IPv6 karena config di-mount read-only), sedangkan
+  busybox wget me-resolve `localhost` → `::1` tanpa fallback → gateway "unhealthy" →
+  cloudflared tidak pernah start → **seluruh domain production 503**. Ditemukan saat
+  deployment verify: item-service/gateway/tunnel ter-stop manual, dan stack tidak bisa
+  naik penuh karena bug ini.
+- Password DB `postgres123` hardcoded di 4 tempat di docker-compose.yml.
+- `.env.example` root menyesatkan (var salah nama, URL monolith) dan **memuat password
+  superadmin production asli** — pelanggaran checklist "placeholder, bukan nilai asli".
+- Tidak ada script verifikasi menyeluruh untuk persiapan demo UAS.
+
+**After**:
+- `docker compose up -d` menghasilkan 7/7 container healthy; healthcheck chain sampai
+  cloudflared bekerja; production live terverifikasi end-to-end (frontend 200,
+  gateway/auth/item health 200, metrics 200, `/items` tanpa token 401).
+- Password DB bisa diganti via `.env` (`POSTGRES_PASSWORD`), default dev tetap
+  `postgres123` → backward compatible, tidak ada perubahan perilaku tanpa .env.
+- `./scripts/verify-deployment.sh [base-url]` lolos 100% untuk lokal dan production.
+
+**Alasan melakukan perubahan**:
+`127.0.0.1` menghindari ambiguitas resolusi IPv6 di healthcheck tanpa mengubah perilaku
+nginx. Parametrisasi password memakai default fallback agar VPS yang `.env`-nya belum punya
+`POSTGRES_PASSWORD` tetap jalan identik (risiko nol). Password superadmin yang sudah
+terlanjur bocor di riwayat git repo classroom sebaiknya **diganti nilainya di production**
+(ubah `SUPERADMIN_PASSWORD` di `.env` lalu reset akun) — dicatat sebagai isu di CLAUDE.md.
+
+---
+
 ## [2026-06-12 10:10 WITA] — Modul 14 (porsi DevOps): prod override, log rotation menyeluruh, fix route /items/health
 
 **Author**: Muhammad Fikri Haikal Ariadma (Lead DevOps) — dikerjakan via AI Agent (Claude)
