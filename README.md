@@ -2,7 +2,29 @@
 
 ![CI Pipeline](https://github.com/aidilsaputrakirsan-classroom/cc-kelompok-a-antek-antek-asing/actions/workflows/ci.yml/badge.svg)
 
----
+
+## 📑 Table of Contents
+
+- [🌐 Live Demo](#-live-demo)
+- [🔄 CI/CD Pipeline](#-cicd-pipeline)
+- [👥 Role Sistem](#-role-sistem)
+- [🚀 Fitur Utama Sistem](#-fitur-utama-sistem)
+- [🛠️ Tech Stack](#️-tech-stack)
+- [🏗️ Microservices Architecture Overview](#️-microservices-architecture-overview)
+- [🧩 Backend Services](#-backend-services)
+- [🔐 Security Features](#-security-features)
+- [📈 Monitoring Features](#-monitoring-features)
+- [⚙️ Environment Variables (.env)](#️-environment-variables-env)
+- [⚡ Quick Start (Local Development)](#-quick-start-local-development)
+- [🚀 Running with Docker Compose](#-running-with-docker-compose)
+- [📚 API Documentation](#-api-documentation)
+- [🧪 Testing](#-testing)
+- [📄 Detail Testing Documentation](#-detail-testing-documentation)
+- [📅 Roadmap](#-roadmap)
+- [📅 Architecture Evolution](#-architecture-evolution)
+- [📁 Project Structure](#-project-structure)
+
+<br> 
 
 # Deskripsi Proyek
 Antick Async merupakan sistem internal helpdesk berbasis cloud yang dirancang untuk membantu perusahaan dalam mengelola alur pekerjaan internal secara tersturktur dan terdokumentasi. Karyawan dapat membuat serta menyelesaikan tiket pekerjaan seperti maintance, perbaikan perangkat hingga teknis lainnya, serta dapat mempermudah dalam pencatatan dan evaluasi performa karyawan dengan melalui Antick Async. 
@@ -259,7 +281,7 @@ Kontrak API lengkap juga tersedia di `docs/api-contract.md`.
 |----------|----------|------|
 | Register User | Input email & password valid | ✅ Berhasil |
 | Login User | Login dengan data benar | ✅ Berhasil mendapatkan token autentifikasi |
-| Login Invalid | Data salah |sistem menolak dan menampilkan pesan error|
+| Login Invalid | Data salah |✅ sistem menolak dan menampilkan pesan error|
 
 #### 📦 CRUD Items
 
@@ -274,7 +296,7 @@ Kontrak API lengkap juga tersedia di `docs/api-contract.md`.
 |Strength Password | Password tidak sesuai kriteria | ✅ Sistem menolak password yang tidak memenuhi kriteria keamanan |
 
 
-📄 Detail Testing Documentation
+## 📄 Detail Testing Documentation
 
 Dokumentasi pengujian lengkap tersedia pada:
 
@@ -282,6 +304,7 @@ Dokumentasi pengujian lengkap tersedia pada:
 - [Reliability Testing Report](docs/reliability-testing.md)
 - [UI Testing Documentation](docs/ui-testing.md)
 - [UI Test Results](docs/ui-test-results.md)
+- [API Contract Documentation](docs/api-contract.md)
 
 ---
 ## 📅 Roadmap
@@ -298,72 +321,126 @@ Dokumentasi pengujian lengkap tersedia pada:
 | 12–14  | Microservices             | ✅|
 | 15–16  | Final & UAS               | ✅ |
 
+## 📅 Architecture Evolution
 
-📁 Project Structure
+| Phase              | Weeks | Architecture                               | Status |
+|-------------------|-------|--------------------------------------------|--------|
+| Foundation        | 1–4   | Monolith (FastAPI + React + PostgreSQL)    | ✅ |
+| Containerization  | 5–7   | Docker Compose (3 containers)              | ✅ |
+| CI/CD             | 9–11  | GitHub Actions + Railway Deployment        | ✅ |
+| Microservices     | 12–14 | 2 Services + Gateway + Monitoring          | ✅ |
+| Final             | 15–16 | Security Hardened + Production Ready       | ✅ |
+
+
+## 📁 Project Structure
 ```
 CC-KELOMPOK-A-ANTEK-ANTEK-ASING
 │
-├── backend
-│   ├── __pycache__
-│   ├── env
-│   ├── .env
-│   ├── .env.example
-│   ├── .dockerignore
-│   ├── Dockerfile
-│   ├── crud.py
-│   ├── database.py
-│   ├── main.py
-│   ├── models.py
-│   ├── requirements.txt
-│   ├── schemas.py
-│   └── test.db
+├── .github/
+│   ├── workflows/                  # CI/CD workflow
+│   └── CODEOWNERS                  # Reviewer assignment
 │
-├── docs
-│   ├── assets
-│   │   └── images
-│   │       ├── week1
-│   │       ├── week2
-│   │       └── week3
-│   │
-│   ├── docker-compose.yml
-│   ├── docker-compose.prod.yml
-│   ├── docker-compose.prod.yaml
-│   ├── member-Muhammad-Athala-Romero.md
-│   ├── member-Muhammad-Bagas-Setiawan.md
-│   ├── member-Muhammad-Fikri-Haikal.md
-│   ├── member-Nanda-Aulia-Putri.md
-│   ├── NOTIFICATION_LIFECYCLE.md
-│   ├── setup.md
-│   └── test.md
-│
-├── frontend
-│   ├── .vite
-│   │   └── deps
-│   │       ├── _metadata.json
-│   │       └── package.json
-│   │
-│   ├── node_modules
-│   ├── public
-│   ├── src
+├── backend/                     # Monolithic backend (legacy/reference)
+│   ├── __pycache__/
+│   ├── tests/
+│   ├── .coverage
 │   ├── .dockerignore
 │   ├── .env
 │   ├── .env.example
-│   ├── .gitignore
-│   ├── Dockerfile
+│   ├── auth.py                     # Authentication & JWT
+│   ├── config.py                   # Environment configuration
+│   ├── crud.py                     # CRUD logic
+│   ├── database.py                 # Database connection
+│   ├── Dockerfile                  # Backend container
+│   ├── main.py                     # Main FastAPI application
+│   ├── models.py                   # Database models
+│   ├── schemas.py                  # Request/response schemas
+│   ├── pytest.ini                  # Pytest configuration
+│   ├── requirements.txt            # Dependencies
+│   └── test.db                     # Testing database
+│
+├── docs/                        # Project documentation
+│   ├── architecture.md             # System architecture
+│   ├── deployment-guide.md         # Deployment guide
+│   ├── docker-architecture.md      # Docker & container flow
+│   ├── reliability-testing.md      # Reliability testing
+│   ├── testing-guide.md            # General testing guide
+│   ├── testing-ui-project.md       # UI testing scenario
+│   ├── ui-test-result.md           # UI testing result
+│   ├── production-test.md          # Production readiness test
+│   ├── api-contract.md             # API contract documentation
+│   ├── operations-guide.md         # Operations documentation
+│   └── img/                        # Screenshots & assets
+│
+├── frontend/                    # Frontend (React + Vite)
+│   ├── vite/
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── constants/
+│   │   ├── App.css
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
 │   ├── index.html
-│   ├── nginx.conf
+│   ├── Dockerfile
 │   ├── package-lock.json
 │   ├── package.json
 │   ├── postcss.config.js
-│   ├── README.md
 │   ├── tailwind.config.js
 │   └── vite.config.js
 │
-├── scripts
+├── scripts/
+│   ├── docker-run.sh
+│   ├── docker-logs.sh
+│   ├── migrate-data.sh
+│   ├── verify-deployment.sh
+│   └── wait-for-db.sh
 │
+├── services/                    # Microservices architecture
+│   │
+│   ├── auth-service/
+│   │   ├── main.py                 # Authentication endpoints
+│   │   ├── models.py              # User model
+│   │   ├── schemas.py             # Validation schema
+│   │   ├── database.py            # DB connection
+│   │   ├── Dockerfile
+│   │   └── shared/
+│   │       ├── __init__.py
+│   │       ├── logging_config.py
+│   │       ├── logging_middleware.py
+│   │       └── metrics.py
+│   │
+│   ├── gateway/
+│   │   └── nginx.conf             # API Gateway routing
+│   │
+│   ├── item-service/
+│   │   ├── main.py                # CRUD item & statistics
+│   │   ├── auth_client.py         # Inter-service auth verification
+│   │   ├── models.py              # Item model
+│   │   ├── Dockerfile
+│   │   └── shared/
+│   │       ├── __init__.py
+│   │       ├── logging_config.py
+│   │       ├── logging_middleware.py
+│   │       └── metrics.py
+│   │
+│   └── shared/
+│       ├── __init__.py
+│       ├── logging_config.py
+│       ├── logging_middleware.py
+│       └── metrics.py
+│
+├── .env
+├── .env.example
 ├── .gitignore
-├── docker.sh
-├── wait-for-it.sh
+├── CHANGELOG.md
+├── CLAUDE.md
+├── docker-compose.dev.yml
+├── docker-compose.prod.yml
+├── docker-compose.yml
 ├── Makefile
+├── pyproject.toml
 └── README.md
 ```
