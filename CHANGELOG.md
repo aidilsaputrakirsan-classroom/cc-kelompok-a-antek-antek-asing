@@ -30,6 +30,54 @@
 
 ---
 
+## [2026-06-12 10:10 WITA] — Modul 14 (porsi DevOps): prod override, log rotation menyeluruh, fix route /items/health
+
+**Author**: Muhammad Fikri Haikal Ariadma (Lead DevOps) — dikerjakan via AI Agent (Claude)
+**Apa yang dirubah**:
+- `services/gateway/nginx.conf` — tambah `location /items/health` yang mem-proxy ke
+  `item-service:/health` (dengan rate limit general).
+- `docker-compose.yml` — tambah log rotation `json-file` (max 10MB × 3 file) pada 5 service
+  yang belum punya: auth-db, item-db, frontend, gateway, cloudflared.
+- `docker-compose.prod.yml` — **file baru**: override production tipis yang menegaskan
+  `ENVIRONMENT=production` + `LOG_LEVEL=INFO` (Tugas Terstruktur Modul 14 DevOps).
+- `Makefile` — tambah target `prod` (compose base + prod override) dan `status`
+  (ringkasan `ps` + health gateway/auth/item). Melengkapi set `dev`/`prod`/`logs`/`status`
+  yang diminta modul.
+
+**Kenapa dirubah**:
+Mengerjakan Tugas Terstruktur Modul 14 role Lead DevOps (branch `feature/docker-production`)
+plus sisa Workshop 14.5 (Docker centralized logging). Route `/items/health` adalah langkah
+Workshop 14.4 yang terlewat di gateway dan menyebabkan bug nyata di StatusPage.
+
+**Before**:
+- StatusPage frontend memanggil `GET /items/health`, tetapi gateway tidak punya route itu —
+  request jatuh ke `location /items` → diteruskan sebagai `/items/health` → cocok dengan
+  route FastAPI `GET /items/{item_id}` yang butuh auth → respons 401/422, kartu
+  "Item Service" di StatusPage **selalu tampil "unreachable"** meski service sehat.
+- Hanya auth-service & item-service yang punya log rotation; log container lain
+  (terutama cloudflared yang verbose) tumbuh tanpa batas → risiko disk VPS penuh.
+- Tidak ada `docker-compose.prod.yml`; mode production hanya implisit dari base compose.
+- Makefile belum punya target `prod` dan `status`.
+
+**After**:
+- `GET /items/health` via gateway mengembalikan health JSON item-service; StatusPage bisa
+  menampilkan status Item Service dengan benar.
+- Semua 7 service punya log rotation 10MB × 3.
+- `make prod` menjalankan stack dengan env production eksplisit; `make status` menampilkan
+  status container + health 3 service sekaligus.
+- Verifikasi: `docker compose config` valid untuk base/dev/prod; sintaks nginx lolos
+  `nginx -t` (diuji di container nginx:1.25-alpine).
+
+**Alasan melakukan perubahan**:
+Base compose sudah production-safe sejak Modul 13 (hanya gateway terekspos, limits, restart
+policy) sehingga `docker-compose.prod.yml` dibuat tipis dan **deploy lama di VPS
+(`docker compose up --build -d`) tetap berfungsi identik** — tidak ada risiko terhadap web
+production yang sedang online. Workshop 14.1–14.4 (structured logging, correlation ID,
+metrics, StatusPage) tidak disentuh karena sudah dikerjakan dan merge oleh role lain;
+hanya gap di sisi infra yang ditutup, sesuai prinsip "jangan ada perubahan jika tidak perlu".
+
+---
+
 ## [2026-06-12 02:45 WITA] — Modul 13 (porsi DevOps): compose resilience, dev override, data migration script
 
 **Author**: Muhammad Fikri Haikal Ariadma (Lead DevOps) — dikerjakan via AI Agent (Claude)

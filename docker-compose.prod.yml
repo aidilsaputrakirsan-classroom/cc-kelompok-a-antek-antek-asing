@@ -1,0 +1,28 @@
+# ==============================================
+# Docker Compose — PRODUCTION OVERRIDE
+# Antick Async (Cloud Kelompok A)
+# ==============================================
+# Cara pakai:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#   atau: make prod
+#
+# PENTING — backward compatible:
+#   Base compose (docker-compose.yml) SUDAH production-safe:
+#     - hanya gateway (port 80) yang diekspos ke host
+#     - restart: unless-stopped di semua service
+#     - deploy.resources.limits di semua service
+#     - log rotation json-file (10MB x 3) di semua service
+#   Deploy lama di VPS (`docker compose up --build -d`) tetap berfungsi identik.
+#   Override ini hanya MENEGASKAN environment production secara eksplisit,
+#   sehingga tidak mungkin tercampur dengan setelan development (LOG_LEVEL=DEBUG,
+#   port debug terekspos) jika seseorang salah menjalankan mode dev di VPS.
+
+services:
+  auth-service:
+    environment:
+      ENVIRONMENT: production
+      LOG_LEVEL: INFO
+
+  item-service:
+    environment:
+      LOG_LEVEL: INFO

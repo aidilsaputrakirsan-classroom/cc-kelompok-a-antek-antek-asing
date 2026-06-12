@@ -1,5 +1,5 @@
 .PHONY: up build down clean restart logs logs-auth logs-item logs-gateway logs-frontend \
-        ps health shell-auth shell-item shell-auth-db shell-item-db dev dev-down
+        ps health shell-auth shell-item shell-auth-db shell-item-db dev dev-down prod status
 
 # ==================== START / STOP ====================
 
@@ -14,6 +14,10 @@ dev:
 # Stop development mode
 dev-down:
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+
+# Production mode eksplisit (base + env production yang ditegaskan)
+prod:
+	docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 # Build ulang semua images + start
 build:
@@ -63,6 +67,19 @@ ps:
 # Test gateway health endpoint
 health:
 	curl -s http://localhost/health | python -m json.tool
+
+# Ringkasan status: container + health semua service via gateway
+status:
+	docker compose ps
+	@echo "--- gateway ---"
+	@curl -s http://localhost/health || echo "gateway unreachable"
+	@echo ""
+	@echo "--- auth-service ---"
+	@curl -s http://localhost/auth/health || echo "auth-service unreachable"
+	@echo ""
+	@echo "--- item-service ---"
+	@curl -s http://localhost/items/health || echo "item-service unreachable"
+	@echo ""
 
 # ==================== SHELL ACCESS ====================
 
