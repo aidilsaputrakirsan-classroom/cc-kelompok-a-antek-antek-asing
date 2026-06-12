@@ -30,6 +30,36 @@
 
 ---
 
+## [2026-06-12 11:30 WITA] — Fix layout form "Tambah Item Baru" yang meluber di halaman /items
+
+**Author**: Muhammad Fikri Haikal Ariadma — dikerjakan via AI Agent (Claude)
+**Apa yang dirubah**:
+- `frontend/src/components/ItemForm.jsx` — perbaikan CSS inline pada `styles.row`,
+  `styles.field`, `styles.input`, dan `styles.actions`.
+
+**Kenapa dirubah**:
+Bug visual di production https://antick-async.online/items: input "Harga (Rp)" dan
+"Jumlah Stok" meluber keluar kartu form dan menimpa area daftar item.
+
+**Before**:
+- `row` = flex tanpa `flexWrap`; `field` = `flex: 1` tanpa `minWidth: 0`; input tanpa
+  `width: 100%` + `boxSizing: border-box`. Karena input HTML punya lebar intrinsik
+  minimum (~170px), dua field berdampingan tidak bisa menyusut di kolom sempit
+  (`lg:col-span-4`, ±350px) → overflow keluar kartu.
+
+**After**:
+- `row` pakai `flexWrap: wrap`; `field` pakai `flex: 1 1 160px` + `minWidth: 0`
+  (berdampingan saat lebar cukup, turun ke baris baru saat sempit); input
+  `width: 100%` + `boxSizing: border-box`; `actions` ikut `flexWrap`.
+- Verifikasi: Vitest 19/19 lolos (termasuk `ItemForm.test.jsx`), `vite build` sukses.
+
+**Alasan melakukan perubahan**:
+Perbaikan minimal di sumber masalah (CSS form) tanpa menyentuh struktur grid halaman,
+sehingga perilaku di layar lebar tetap sama dan hanya kondisi sempit yang berubah
+(wrap, bukan overflow).
+
+---
+
 ## [2026-06-12 10:50 WITA] — Modul 15 (porsi DevOps): secret audit, fix healthcheck gateway, restore production, verify script
 
 **Author**: Muhammad Fikri Haikal Ariadma (Lead DevOps) — dikerjakan via AI Agent (Claude)
