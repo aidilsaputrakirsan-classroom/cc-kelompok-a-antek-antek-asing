@@ -2,7 +2,36 @@
 
 ![CI Pipeline](https://github.com/aidilsaputrakirsan-classroom/cc-kelompok-a-antek-antek-asing/actions/workflows/ci.yml/badge.svg)
 
----
+
+## 📑 Table of Contents
+
+- [🌐 Live Demo](#-live-demo)
+- [🔄 CI/CD Pipeline](#-cicd-pipeline)
+- [👥 Role Sistem](#-role-sistem)
+- [🚀 Fitur Utama Sistem](#-fitur-utama-sistem)
+- [🛠️ Tech Stack](#️-tech-stack)
+- [🏗️ Microservices Architecture Overview](#️-microservices-architecture-overview)
+- [🧩 Backend Services](#-backend-services)
+- [🔐 Security Features](#-security-features)
+- [📈 Monitoring Features](#-monitoring-features)
+- [⚙️ Environment Variables (.env)](#️-environment-variables-env)
+- [⚡ Quick Start (Local Development)](#-quick-start-local-development)
+- [🚀 Running with Docker Compose](#-running-with-docker-compose)
+- [📚 API Documentation](#-api-documentation)
+- [🧪 Testing](#-testing)
+- [📄 Detail Testing Documentation](#-detail-testing-documentation)
+- [📅 Roadmap](#-roadmap)
+- [📅 Architecture Evolution](#-architecture-evolution)
+- [📁 Project Structure](#-project-structure)
+
+<br> 
+
+# Deskripsi Proyek
+Antick Async merupakan sistem internal helpdesk berbasis cloud yang dirancang untuk membantu perusahaan dalam mengelola alur pekerjaan internal secara tersturktur dan terdokumentasi. Karyawan dapat membuat serta menyelesaikan tiket pekerjaan seperti maintance, perbaikan perangkat hingga teknis lainnya, serta dapat mempermudah dalam pencatatan dan evaluasi performa karyawan dengan melalui Antick Async. 
+
+Setiap tiket terdapat waktu pembuatan hingga penyelesaian serta seluruh aktivitas kerja yang akan dicatat dan dimonitoring secara sistematis. Dengan adanya sistem Antick Async, perusahaan dapat meningkatkan transparansi operasional, serta memastikan setiap tugas akan terdokumentasi secara terpusat sehingga supervisor dapat memonitor produktivitas harian serta mengevaluasi pencapain KPI secara lebih objektif dan berbasis data. 
+
+
 
 ## 🌐 Live Demo
 
@@ -29,14 +58,7 @@
 - Setelah merge ke `main`: DevOps akses VPS → `git pull origin main` → `docker compose up --build -d`
 - Health check tersedia via GitHub Actions: [🏥 Production Health Check](.github/workflows/health-check.yml) (jalankan manual setelah deploy)
 
----
 
-## Deskripsi Proyek
-Antick Async merupakan sistem internal helpdesk berbasis cloud yang dirancang untuk membantu perusahaan dalam mengelola alur pekerjaan internal secara tersturktur dan terdokumentasi. Karyawan dapat membuat serta menyelesaikan tiket pekerjaan seperti maintance, perbaikan perangkat hingga teknis lainnya, serta dapat mempermudah dalam pencatatan dan evaluasi performa karyawan dengan melalui Antick Async. 
-
-Setiap tiket terdapat waktu pembuatan hingga penyelesaian serta seluruh aktivitas kerja yang akan dicatat dan dimonitoring secara sistematis. Dengan adanya sistem Antick Async, perusahaan dapat meningkatkan transparansi operasional, serta memastikan setiap tugas akan terdokumentasi secara terpusat sehingga supervisor dapat memonitor produktivitas harian serta mengevaluasi pencapain KPI secara lebih objektif dan berbasis data. 
-
----
 ## 👥 Role Sistem
 
 Sistem memiliki 4 role utama:
@@ -64,7 +86,6 @@ Menerima notifikasi status tiket
 
 ---
 ## 🚀 Fitur Utama Sistem
-
 1. Authentication & Approval System
 - Login user hanya bisa setelah approval admin/superadmin
 - Validasi email saat register
@@ -109,39 +130,49 @@ Menerima notifikasi status tiket
 
 ## 🛠️ Tech Stack
 
-| Teknologi | Fungsi |
+| Layer | Teknologi |
 |------------|---------|
-| FastAPI | Backend REST API |
-| React (Vite) | Frontend SPA |
-| PostgreSQL | Database |
-| Docker | Containerization|
-| GitHub Actions | CI/CD |
-| Cloudflare Tunnel | Cloud Deployment & HTTPS |
-
+| Backend | **FastAPI** (Python 3.12), SQLAlchemy ORM, Pydantic v2 + pydantic-settings, slowapi (rate limit), JWT (python-jose style, HS256) |
+| Frontend | **React 19 + Vite 7**, react-router-dom 7, Tailwind CSS 3, axios/fetch, lucide-react, @splinetool/react-spline (3D scene), Vitest + Testing Library |
+| Database | **PostgreSQL 16 (alpine)** — 2 database terpisah (database-per-service) |
+| Gateway | **Nginx 1.25** (reverse proxy, rate limiting, CORS) |
+| Container | **Docker + Docker Compose** (7 services) |
+| CI/CD | **GitHub Actions** (`.github/workflows/ci.yml`, `health-check.yml`) |
+| Deployment | VPS + **Cloudflare Tunnel** (`cloudflared` container) |
 
 
 ## 🏗️ Microservices Architecture Overview
-```
-[Client / Browser]
-        │
-      (HTTPS)
-        │
-        ▼
-[Cloudflare Tunnel]
-        │
-        ▼
-[Nginx API Gateway (Port 80)]
-   │                   │                  │
-   ▼                   ▼                  ▼
-/auth/*             /items/*              /
-   │                   │                  │
-   ▼                   ▼                  ▼
-[Auth Service]      [Item Service]     [React SPA]
- (FastAPI)           (FastAPI)
-   │                   │
-   ▼                   ▼
-[auth_db]           [item_db]
-(PostgreSQL)        (PostgreSQL)
+
+```mermaid
+flowchart TD
+    A[Client / Browser]
+    B[Cloudflare Tunnel]
+    C["Nginx API Gateway (Port 80)"]
+
+    D["/auth/*"]
+    E["/items/*"]
+    F["/"]
+
+    G["Auth Service<br/>(FastAPI)"]
+    H["Item Service<br/>(FastAPI)"]
+    I["React SPA"]
+
+    J["auth_db<br/>(PostgreSQL)"]
+    K["item_db<br/>(PostgreSQL)"]
+
+    A -->|HTTPS| B
+    B --> C
+
+    C --> D
+    C --> E
+    C --> F
+
+    D --> G
+    E --> H
+    F --> I
+
+    G --> J
+    H --> K
 ```
 
 ## 🧩 Backend Services
@@ -175,8 +206,54 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 SUPERADMIN_PASSWORD=YOUR_STRONG_PASSWORD
 ```
 
-## 🚀 Running with Docker Compose
+## ⚡ Quick Start (Local Development)
 
+### Clone Repository
+```bash
+git clone https://github.com/aidilsaputrakirsan-classroom/cc-kelompok-a-antek-antek-asing.git
+```
+
+### Backend
+```bash
+
+cd backend
+
+pip install -r requirements.txt
+
+uvicorn main:app --reload
+
+Backend berjalan pada:
+
+http://localhost:8000
+```
+
+--- 
+### Frontend
+```bash
+
+cd frontend
+
+npm install
+
+npm run dev
+
+Frontend berjalan pada:
+
+http://localhost:5173
+Docker Compose
+
+Menjalankan seluruh sistem menggunakan Docker:
+
+docker compose up --build -d
+
+Melihat logs seluruh container:
+
+docker compose logs -f
+```
+
+
+## 🚀 Running with Docker Compose
+```bash
 Aplikasi dideploy menggunakan Docker Compose untuk orkestrasi seluruh arsitektur *microservices*.
 
 ```bash
@@ -196,261 +273,7 @@ Kontrak API lengkap juga tersedia di `docs/api-contract.md`.
 
 
 
-### Berikut Hasil tampilan frontend yang menampilkan response dari backend API
-![Foto hasil endpoint](hasil.png)
-
-
-## Week 2 Dokumentasi Hasil Pengujian API 
-Base URL 
-```
-http://localhost:8000
-```
-Swagger UI
-```
-http://localhost:8000/docs
-```
-### 1. **POST /items**
-
-Pada Endpoint ini digunakan menambahkan item baru ke database
-
-```
-{
-"name": "Laptop",
-"price": 15000000,
-"description": "Laptop untuk cloud computing",
-"quantity": 5
-}
-```
-Status Response 
-```
-201 Created
-``` 
-
-URL 
-```
-http://127.0.0.1:8000/items
-
-```
-### 2. **GET /items**
-
-Pada Endpoint ini digunakan untuk menampilkan daftar item 
-
-```
-{
-  "total": 0,
-  "items": [
-    {
-      "name": "Laptop",
-      "description": "Laptop untuk cloud computing",
-      "price": 15000000,
-
-```
-Status Response 
-```
-200 OK
-``` 
-
-URL 
-```
-http://127.0.0.1:8000/items
-
-```
-### 3. **GET /items/1**
-
-Pada Endpoint ini digunakan untuk mengembalikan detail item dengan id =1 
-
-```
-{
-  "name": "Laptop",
-  "description": "Laptop untuk cloud computing",
-  "price": 15000000,
-  "quantity": 5,
-  "id": 1,
-  "created_at": "2026-03-07T06:41:33.175Z",
-  "updated_at": "null"
-}
-```
-Status Response 
-```
-200 OK
-``` 
-
-URL 
-```
-http://127.0.0.1:8000/items/1
-
-```
-### 4. **PUT/items/1**
-
-Pada Endpoint ini digunakan untuk memperbarui Data Item.
-```
-  "name": "Laptop",
-  "description": "Laptop untuk cloud computing",
-  "price": 14000000,
-  "quantity": 5,
-  "id": 1,
-```
-Status Response 
-```
-200 OK
-``` 
-
-URL 
-```
-http://127.0.0.1:8000/items/1
-
-```
-
-### 5. ** GET /items/1**
-
-Pada Endpoint ini digunakan untuk menampilkan kembali data item setelah dilakukan update.
-```
-  "name": "Laptop",
-  "description": "Laptop untuk cloud computing",
-  "price": 14000000,
-  "quantity": 5,
-  "id": 1,
-```
-Status Response 
-```
-200 OK
-``` 
-
-URL 
-```
-http://127.0.0.1:8000/items/1
-
-```
-### 6. **GET/items?search=laptop**
-
-Endpoint ini digunakan untuk mencari item berdasarkan kata kunci tertentu.
-```
-  "name": "Laptop",
-  "description": "Laptop untuk cloud computing",
-  "price": 14000000,
-  "quantity": 5,
-  "id": 1,
-```
-Status Response 
-```
-200 OK
-``` 
-
-URL 
-```
-http://127.0.0.1:8000/items/1?search=laptop
-
-```
-
-### 7. **DELETE/items/1**
-
-Endpoint ini digunakan untuk menghapus item dari database
-
-Status Response 
-```
-204
-``` 
-URL 
-```
-http://127.0.0.1:8000/items/1
-
-```
-
-### 8. **GET/items/1**
-
-Endpoint ini  memastikan bahwa item yang telah dihapus tidak lagi tersedia di database.
-```
-"detail: "Item dengan id=1 tidak ditemukan"
-```
-Status Response 
-```
-404 Not Found
-``` 
-URL 
-```
-http://127.0.0.1:8000/items/1
-
-```
-
-### 9. **GET/items/stats**
-
-Manampilkan statistik item 
-Status Response 
-```
-404 Not Found
-``` 
-URL 
-```
-http://127.0.0.1:8000/items/stats
-
-```
-
----
-### Week 4 Integrasi full-stack- cors, env variables & JWT AUTH
-
-#### ⚙️ Setup & Run
-
-| Bagian   | Perintah |
-|----------|---------|
-| Backend Install | `cd backend && pip install -r requirements.txt` |
-| Backend Run | `uvicorn main:app --reload` |
-| Frontend Install | `cd frontend && npm install` |
-| Frontend Run | `npm run dev` |
-
-#### 🌐 Akses Aplikasi
-
-| Service | URL |
-|--------|-----|
-| Backend | http://127.0.0.1:8000 |
-| Swagger Docs | http://127.0.0.1:8000/docs |
-| Frontend | http://localhost:5173 |
-
----
-
-### 🔐 Authentication
-
-Menggunakan JWT (JSON Web Token)
-
-| Method | Endpoint | Deskripsi |
-|--------|---------|----------|
-| POST | `/auth/register` | Registrasi user |
-| POST | `/auth/login` | Login & mendapatkan token |
-
-Token di header:
-```
-Authorization: Bearer <token>
-```
-
----
-
-## 📡 API Endpoints
-
-####  🔐 Authentication
-
-| Method | Endpoint |
-|--------|---------|
-| POST | `/auth/register` |
-| POST | `/auth/login` |
-
-#### 📦 Items
-
-| Method | Endpoint |
-|--------|---------|
-| GET | `/items` |
-| POST | `/items` |
-| PUT | `/items/{id}` |
-| DELETE | `/items/{id}` |
-
-#### 📊 Stats
-
-| Method | Endpoint |
-|--------|---------|
-| GET | `/items/stats` |
-
----
-
-
-### 🧪 Testing
+## 🧪 Testing
 
 #### 🔐 Authentication
 
@@ -458,7 +281,7 @@ Authorization: Bearer <token>
 |----------|----------|------|
 | Register User | Input email & password valid | ✅ Berhasil |
 | Login User | Login dengan data benar | ✅ Berhasil mendapatkan token autentifikasi |
-| Login Invalid | Data salah |sistem menolak dan menampilkan pesan error|
+| Login Invalid | Data salah |✅ sistem menolak dan menampilkan pesan error|
 
 #### 📦 CRUD Items
 
@@ -472,20 +295,16 @@ Authorization: Bearer <token>
 | Invalid Email | Format email salah | ✅ Sistem menolak email dengan format yang tidak valid|
 |Strength Password | Password tidak sesuai kriteria | ✅ Sistem menolak password yang tidak memenuhi kriteria keamanan |
 
----
 
-### ✨ Fitur Tambahan
+## 📄 Detail Testing Documentation
 
--  Notifikasi sukses/gagal (toast/alert)
--  Loading spinner saat API call
--  Validasi input (email & password)
--  Empty state saat data kosong
----
-## 📸 Test Results
+Dokumentasi pengujian lengkap tersedia pada:
 
-Hasil testing pada modul 4 dapat dilihat di folder berikut:
-
-[Folder Screenshot](docs/images/)
+- [Testing Guide](docs/testing-guide.md)
+- [Reliability Testing Report](docs/reliability-testing.md)
+- [UI Testing Documentation](docs/ui-testing.md)
+- [UI Test Results](docs/ui-test-results.md)
+- [API Contract Documentation](docs/api-contract.md)
 
 ---
 ## 📅 Roadmap
@@ -499,145 +318,129 @@ Hasil testing pada modul 4 dapat dilihat di folder berikut:
 | 5–7    | Docker & Compose          | ✅ |
 | 8      | UTS Demo                  | ✅ |
 | 9–11   | CI/CD Pipeline            | ✅ |
-| 12–14  | Microservices             | ⬜ |
-| 15–16  | Final & UAS               | ⬜ |
+| 12–14  | Microservices             | ✅|
+| 15–16  | Final & UAS               | ✅ |
+
+## 📅 Architecture Evolution
+
+| Phase              | Weeks | Architecture                               | Status |
+|-------------------|-------|--------------------------------------------|--------|
+| Foundation        | 1–4   | Monolith (FastAPI + React + PostgreSQL)    | ✅ |
+| Containerization  | 5–7   | Docker Compose (3 containers)              | ✅ |
+| CI/CD             | 9–11  | GitHub Actions + Railway Deployment        | ✅ |
+| Microservices     | 12–14 | 2 Services + Gateway + Monitoring          | ✅ |
+| Final             | 15–16 | Security Hardened + Production Ready       | ✅ |
 
 
-
-## 🐳 Docker Deployment (Modul 5)
-
-Aplikasi ini sudah di-containerize menggunakan Docker.
-
-**Cara Menjalankan Backend dan Frontend dengan Docker:**
-1. Pastikan Docker Desktop sudah berjalan.
-2. Build image backend: `docker build -t notyourkisee/cloudapp-backend:v1 ./backend`
-3. Build image frontend: `docker build -t notyourkisee/cloudapp-frontend:v1 ./frontend`
-4. Jalankan backend: `docker run -d --name backend -p 8000:8000 --env-file backend/.env notyourkisee/cloudapp-backend:v1`
-5. Jalankan frontend: `docker run -d --name frontend -p 3000:80 notyourkisee/cloudapp-frontend:v1`
-6. Akses API docs di: `http://localhost:8000/docs`
-7. Akses frontend di: `http://localhost:3000`
-
-**Verifikasi Healthcheck Backend:**
-- `docker inspect --format='{{.State.Health.Status}}' backend`
-
-<br><br>
-
-
-
-### 📌 Progress  Aplikasi Antick Async
-Pada aplikasi Antick Async sistem sudah dapat digunakan untuk proses autentikasi pengguna serta menampilkan dashboard utama sebagai aktivitas user.
-
-## Fitur Authentication (Login & Register)
-
-Pada implementasi fitur authentication, pengguna sudah dapat melakukan proses registrasi dan login ke dalam aplikasi.
-
-Pada proses ini, sistem menggunakan JWT (JSON Web Token) sebagai mekanisme autentikasi. Setelah user berhasil login, sistem akan memberikan token yang digunakan untuk mengakses endpoint tertentu yang bersifat protected.
-
-validasi input telah berhasil diterapkan, seperti:
-- Validasi format email
-- Validasi kekuatan password
-- Penanganan error ketika data tidak valid
-
-Dengan adanya fitur ini, sistem sudah mampu membatasi akses hanya untuk user yang terdaftar.
-
-## Fitur Dashboard
-
-Setelah pengguna berhasil login, sistem akan menampilkan halaman dashboard sebagai halaman utama aplikasi. Dashboard ini berfungsi sebagai pusat monitoring aktivitas user, dan saat ini sudah memiliki beberapa komponen utama, yaitu:
-- Ringkasan tiket (total tiket, tiket diproses, response time, dan resolved rate)
-- Form input untuk membuat tiket baru
-- Visualisasi data berupa grafik aktivitas tiket
-- Kategori tiket dalam bentuk chart
-- Daftar tiket milik user
-- Aktivitas terbaru (recent activity)
-
-
-## Integrasi Frontend & Backend
-
-Pada tahap ini, frontend dan backend sudah berhasil terintegrasi dengan baik. Frontend yang dibangun menggunakan React (Vite) seperti:
-- Mengirim request ke backend melalui REST API
-- Menerima response dari backend
-- Menampilkan data secara dinamis di dashboard
-
-Komunikasi antar service menggunakan format JSON dan berjalan melalui endpoint API yang tersedia di backend.
-
-## Implementasi Docker (Containerization)
-
-Aplikasi Antick Async telah berhasil dijalankan menggunakan Docker dengan pendekatan multi-container. Terdapat tiga container utama yang digunakan yaitu :
-
-- Frontend Container → Menjalankan aplikasi React
-- Backend Container → Menjalankan API berbasis FastAPI
-- Database Container → Menggunakan PostgreSQL sebagai penyimpanan data
-
-Ketiga container ini saling terhubung dalam satu Docker network, sehingga dapat berkomunikasi menggunakan service nama. Selain ketiga container diatas terdapat beberapa impelntasi docker yang telah berhasil seperti: 
-- Port telah dikonfigurasi untuk masing-masing service
-- Database menggunakan volume (pgdata) untuk menjaga data
-- Environment variables digunakan untuk konfigurasi koneksi dan keamanan
-
-📁 Project Structure
+## 📁 Project Structure
 ```
 CC-KELOMPOK-A-ANTEK-ANTEK-ASING
 │
-├── backend
-│   ├── __pycache__
-│   ├── env
-│   ├── .env
-│   ├── .env.example
-│   ├── .dockerignore
-│   ├── Dockerfile
-│   ├── crud.py
-│   ├── database.py
-│   ├── main.py
-│   ├── models.py
-│   ├── requirements.txt
-│   ├── schemas.py
-│   └── test.db
+├── .github/
+│   ├── workflows/                  # CI/CD workflow
+│   └── CODEOWNERS                  # Reviewer assignment
 │
-├── docs
-│   ├── assets
-│   │   └── images
-│   │       ├── week1
-│   │       ├── week2
-│   │       └── week3
-│   │
-│   ├── docker-compose.yml
-│   ├── docker-compose.prod.yml
-│   ├── docker-compose.prod.yaml
-│   ├── member-Muhammad-Athala-Romero.md
-│   ├── member-Muhammad-Bagas-Setiawan.md
-│   ├── member-Muhammad-Fikri-Haikal.md
-│   ├── member-Nanda-Aulia-Putri.md
-│   ├── NOTIFICATION_LIFECYCLE.md
-│   ├── setup.md
-│   └── test.md
-│
-├── frontend
-│   ├── .vite
-│   │   └── deps
-│   │       ├── _metadata.json
-│   │       └── package.json
-│   │
-│   ├── node_modules
-│   ├── public
-│   ├── src
+├── backend/                     # Monolithic backend (legacy/reference)
+│   ├── __pycache__/
+│   ├── tests/
+│   ├── .coverage
 │   ├── .dockerignore
 │   ├── .env
 │   ├── .env.example
-│   ├── .gitignore
-│   ├── Dockerfile
+│   ├── auth.py                     # Authentication & JWT
+│   ├── config.py                   # Environment configuration
+│   ├── crud.py                     # CRUD logic
+│   ├── database.py                 # Database connection
+│   ├── Dockerfile                  # Backend container
+│   ├── main.py                     # Main FastAPI application
+│   ├── models.py                   # Database models
+│   ├── schemas.py                  # Request/response schemas
+│   ├── pytest.ini                  # Pytest configuration
+│   ├── requirements.txt            # Dependencies
+│   └── test.db                     # Testing database
+│
+├── docs/                        # Project documentation
+│   ├── architecture.md             # System architecture
+│   ├── deployment-guide.md         # Deployment guide
+│   ├── docker-architecture.md      # Docker & container flow
+│   ├── reliability-testing.md      # Reliability testing
+│   ├── testing-guide.md            # General testing guide
+│   ├── testing-ui-project.md       # UI testing scenario
+│   ├── ui-test-result.md           # UI testing result
+│   ├── production-test.md          # Production readiness test
+│   ├── api-contract.md             # API contract documentation
+│   ├── operations-guide.md         # Operations documentation
+│   └── img/                        # Screenshots & assets
+│
+├── frontend/                    # Frontend (React + Vite)
+│   ├── vite/
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── constants/
+│   │   ├── App.css
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
 │   ├── index.html
-│   ├── nginx.conf
+│   ├── Dockerfile
 │   ├── package-lock.json
 │   ├── package.json
 │   ├── postcss.config.js
-│   ├── README.md
 │   ├── tailwind.config.js
 │   └── vite.config.js
 │
-├── scripts
+├── scripts/
+│   ├── docker-run.sh
+│   ├── docker-logs.sh
+│   ├── migrate-data.sh
+│   ├── verify-deployment.sh
+│   └── wait-for-db.sh
 │
+├── services/                    # Microservices architecture
+│   │
+│   ├── auth-service/
+│   │   ├── main.py                 # Authentication endpoints
+│   │   ├── models.py              # User model
+│   │   ├── schemas.py             # Validation schema
+│   │   ├── database.py            # DB connection
+│   │   ├── Dockerfile
+│   │   └── shared/
+│   │       ├── __init__.py
+│   │       ├── logging_config.py
+│   │       ├── logging_middleware.py
+│   │       └── metrics.py
+│   │
+│   ├── gateway/
+│   │   └── nginx.conf             # API Gateway routing
+│   │
+│   ├── item-service/
+│   │   ├── main.py                # CRUD item & statistics
+│   │   ├── auth_client.py         # Inter-service auth verification
+│   │   ├── models.py              # Item model
+│   │   ├── Dockerfile
+│   │   └── shared/
+│   │       ├── __init__.py
+│   │       ├── logging_config.py
+│   │       ├── logging_middleware.py
+│   │       └── metrics.py
+│   │
+│   └── shared/
+│       ├── __init__.py
+│       ├── logging_config.py
+│       ├── logging_middleware.py
+│       └── metrics.py
+│
+├── .env
+├── .env.example
 ├── .gitignore
-├── docker.sh
-├── wait-for-it.sh
+├── CHANGELOG.md
+├── CLAUDE.md
+├── docker-compose.dev.yml
+├── docker-compose.prod.yml
+├── docker-compose.yml
 ├── Makefile
+├── pyproject.toml
 └── README.md
 ```
