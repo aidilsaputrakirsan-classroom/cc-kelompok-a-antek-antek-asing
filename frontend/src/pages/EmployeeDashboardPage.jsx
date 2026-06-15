@@ -3,8 +3,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Ticket, Clock3, CheckCheck, FolderCheck } from "lucide-react";
 import { categoryApi, ticketApi } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../context/useToast";
 import { AnimatedMetricValue } from "../components/AnimatedMetricValue";
 import Card from "../components/ui/Card";
+import CardSpotlight from "../components/ui/CardSpotlight";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import StatusBadge from "../components/StatusBadge";
@@ -56,6 +58,7 @@ function buildSeries(tickets) {
 
 export default function EmployeeDashboardPage() {
   const { user } = useAuth();
+  const toast = useToast();
   const [searchParams] = useSearchParams();
   const queryFilter = (searchParams.get("q") || "").trim().toLowerCase();
   const requestedTab = (searchParams.get("tab") || "overview").toLowerCase();
@@ -97,9 +100,11 @@ export default function EmployeeDashboardPage() {
         category_id: Number(form.category_id),
       });
       setForm({ title: "", description: "", priority: "low", category_id: "" });
+      toast.success("Tiket berhasil dibuat!");
       setMessage("Tiket berhasil dibuat.");
       await loadData();
     } catch (err) {
+      toast.error(err.message || "Gagal membuat tiket.");
       setMessage(err.message || "Gagal membuat tiket.");
     }
   };
@@ -318,7 +323,7 @@ export default function EmployeeDashboardPage() {
 
 function MetricCard({ label, value, icon: IconComponent }) {
   return (
-    <article className="group rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:shadow-lg hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 hover:-translate-y-1">
+    <CardSpotlight className="group rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:shadow-lg hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 hover:-translate-y-1">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
@@ -332,6 +337,6 @@ function MetricCard({ label, value, icon: IconComponent }) {
           </div>
         )}
       </div>
-    </article>
+    </CardSpotlight>
   );
 }

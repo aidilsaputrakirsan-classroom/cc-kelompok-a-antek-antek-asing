@@ -3,9 +3,11 @@ import { useSearchParams } from "react-router-dom";
 import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Pencil, Plus, Trash2, User, Eye, Ticket, Users } from "lucide-react";
 import { adminApi, categoryApi, ticketApi } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../context/useToast";
 import { getAvatarPath } from "../constants/avatars";
 import { AnimatedMetricValue } from "../components/AnimatedMetricValue";
 import Card from "../components/ui/Card";
+import CardSpotlight from "../components/ui/CardSpotlight";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import Modal from "../components/ui/Modal";
@@ -166,6 +168,7 @@ function ThemedSelect({ value, onChange, children, className = "", leftAdornment
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
+  const toast = useToast();
   const [searchParams] = useSearchParams();
   const queryTab = searchParams.get("tab");
   const queryFilter = (searchParams.get("q") || "").trim().toLowerCase();
@@ -362,8 +365,10 @@ export default function AdminDashboardPage() {
   const updateTicket = async (ticketId, payload) => {
     try {
       await ticketApi.updateByAdmin(ticketId, payload);
+      toast.success("Tiket berhasil diperbarui!");
       await loadData();
     } catch (err) {
+      toast.error(err.message || "Gagal update tiket.");
       setError(err.message || "Gagal update tiket.");
     }
   };
@@ -371,8 +376,10 @@ export default function AdminDashboardPage() {
   const updateRole = async (userId, role) => {
     try {
       await adminApi.updateUserRole(userId, role);
+      toast.success(`Role user berhasil diubah menjadi ${role}!`);
       await loadData();
     } catch (err) {
+      toast.error(err.message || "Gagal mengubah role user.");
       setError(err.message || "Gagal mengubah role user.");
     }
   };
@@ -380,26 +387,31 @@ export default function AdminDashboardPage() {
   const updateUserDepartment = async (userId, department) => {
     try {
       await adminApi.updateUserDepartment(userId, department);
+      toast.success("Departemen user berhasil diperbarui!");
       await loadData();
       setEditingUserDepartment(null);
       setDepartmentEditMode(null);
     } catch (err) {
+      toast.error(err.message || "Gagal mengubah departemen user.");
       setError(err.message || "Gagal mengubah departemen user.");
     }
   };
 
   const createCategory = async () => {
     if (!categoryForm.name.trim()) {
+      toast.warning("Nama kategori wajib diisi.");
       setError("Nama kategori wajib diisi.");
       return;
     }
 
     try {
       await categoryApi.create(categoryForm);
+      toast.success("Kategori berhasil ditambahkan!");
       setCategoryForm({ name: "", description: "" });
       setIsCreateCategoryOpen(false);
       await loadData();
     } catch (err) {
+      toast.error(err.message || "Gagal membuat kategori.");
       setError(err.message || "Gagal membuat kategori.");
     }
   };
@@ -411,9 +423,11 @@ export default function AdminDashboardPage() {
         name: editingCategory.name,
         description: editingCategory.description,
       });
+      toast.success("Kategori berhasil diperbarui!");
       setEditingCategory(null);
       await loadData();
     } catch (err) {
+      toast.error(err.message || "Gagal update kategori.");
       setError(err.message || "Gagal update kategori.");
     }
   };
@@ -424,24 +438,29 @@ export default function AdminDashboardPage() {
 
     try {
       await categoryApi.remove(categoryId);
+      toast.success("Kategori berhasil dihapus!");
       await loadData();
     } catch (err) {
+      toast.error(err.message || "Gagal menghapus kategori.");
       setError(err.message || "Gagal menghapus kategori.");
     }
   };
 
   const createDepartment = async () => {
     if (!departmentForm.name.trim()) {
+      toast.warning("Nama departemen tidak boleh kosong.");
       setError("Nama departemen tidak boleh kosong.");
       return;
     }
 
     try {
       await adminApi.createDepartment(departmentForm);
+      toast.success("Departemen berhasil ditambahkan!");
       setDepartmentForm({ name: "", description: "" });
       setIsCreateDepartmentOpen(false);
       await loadData();
     } catch (err) {
+      toast.error(err.message || "Gagal membuat departemen.");
       setError(err.message || "Gagal membuat departemen.");
     }
   };
@@ -454,9 +473,11 @@ export default function AdminDashboardPage() {
         name: editingDepartment.name,
         description: editingDepartment.description,
       });
+      toast.success("Departemen berhasil diperbarui!");
       setEditingDepartment(null);
       await loadData();
     } catch (err) {
+      toast.error(err.message || "Gagal mengubah departemen.");
       setError(err.message || "Gagal mengubah departemen.");
     }
   };
@@ -467,8 +488,10 @@ export default function AdminDashboardPage() {
 
     try {
       await adminApi.deleteDepartment(deptId);
+      toast.success("Departemen berhasil dihapus!");
       await loadData();
     } catch (err) {
+      toast.error(err.message || "Gagal menghapus departemen.");
       setError(err.message || "Gagal menghapus departemen.");
     }
   };
@@ -478,7 +501,11 @@ export default function AdminDashboardPage() {
 
     const ticketId = assigneePickerTicket.id;
     setAssigneePickerTicket(null);
-    await updateTicket(ticketId, { assignee_id: assigneeId });
+    try {
+      await updateTicket(ticketId, { assignee_id: assigneeId });
+    } catch (err) {
+      // error already handled in updateTicket
+    }
   };
 
   const handleAssigneePickerToggle = (ticket, event) => {
@@ -546,7 +573,7 @@ export default function AdminDashboardPage() {
         {activeTab === "categories" && (
           <Button
             onClick={() => setIsCreateCategoryOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#2592ea] px-4 py-2 text-white hover:bg-blue-500"
+            className="inline-flex items-center gap-2 rounded-xl"
           >
             <Plus size={16} aria-hidden="true" />
             Add Category
@@ -556,7 +583,7 @@ export default function AdminDashboardPage() {
         {activeTab === "departments" && (
           <Button
             onClick={() => setIsCreateDepartmentOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#2592ea] px-4 py-2 text-white hover:bg-blue-500"
+            className="inline-flex items-center gap-2 rounded-xl"
           >
             <Plus size={16} aria-hidden="true" />
             Add Department
@@ -1200,7 +1227,7 @@ export default function AdminDashboardPage() {
 
 function MetricCard({ label, value, icon: IconComponent }) {
   return (
-    <article className="group rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:shadow-lg hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 hover:-translate-y-1">
+    <CardSpotlight className="group rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:shadow-lg hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 hover:-translate-y-1">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
@@ -1214,6 +1241,6 @@ function MetricCard({ label, value, icon: IconComponent }) {
           </div>
         )}
       </div>
-    </article>
+    </CardSpotlight>
   );
 }

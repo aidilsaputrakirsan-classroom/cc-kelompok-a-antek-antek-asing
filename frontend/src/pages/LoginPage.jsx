@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useNotification } from "../hooks/useNotification";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
+import CardSpotlight from "../components/ui/CardSpotlight";
 import Alert from "../components/ui/Alert";
 import SplineCardScene from "../components/SplineCardScene";
 import CosmicBackdrop from "../components/CosmicBackdrop";
@@ -50,11 +51,10 @@ export default function LoginPage() {
       <CosmicBackdrop />
 
       <section
-        className={`relative z-10 w-full max-w-[1060px] overflow-hidden rounded-[30px] bg-white dark:bg-slate-900 shadow-[0_30px_80px_-35px_rgba(2,16,44,0.55)] dark:shadow-[0_30px_80px_-35px_rgba(0,0,0,0.8)] transition-all duration-500 ease-out md:grid md:grid-cols-[1.08fr_1fr] ${
-          entered
+        className={`relative z-10 w-full max-w-[1060px] overflow-hidden rounded-[30px] bg-white dark:bg-slate-900 shadow-[0_30px_80px_-35px_rgba(2,16,44,0.55)] dark:shadow-[0_30px_80px_-35px_rgba(0,0,0,0.8)] transition-all duration-500 ease-out md:grid md:grid-cols-[1.08fr_1fr] ${entered
             ? "translate-y-0 opacity-100"
             : "translate-y-8 opacity-0"
-        }`}
+          }`}
       >
         <aside className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#2592ea_0%,#4aa6f2_52%,#61b1f5_100%)] px-0 pt-0 pb-0 text-white md:min-h-[600px] md:rounded-r-[36px] md:pb-0">
           <div className="pointer-events-none absolute -right-8 top-20 h-36 w-36 rounded-full" />
@@ -148,9 +148,9 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <Alert 
-                message={error} 
-                type="error" 
+              <Alert
+                message={error}
+                type="error"
                 onClose={() => setError("")}
                 autoClose={true}
                 duration={4000}
@@ -160,7 +160,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-[#2592ea] py-3 text-lg hover:bg-blue-500"
+              className="w-full rounded-xl py-3 text-lg"
             >
               {loading ? "Processing..." : "Sign In"}
             </Button>

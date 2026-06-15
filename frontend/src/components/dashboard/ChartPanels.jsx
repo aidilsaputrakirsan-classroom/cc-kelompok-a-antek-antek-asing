@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import CardSpotlight from "../ui/CardSpotlight";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -178,7 +179,7 @@ export function ActivityLineChart({ tickets = [] }) {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
+    <CardSpotlight className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">Ticket Activity</h3>
@@ -238,7 +239,7 @@ export function ActivityLineChart({ tickets = [] }) {
           </span>
         ))}
       </div>
-    </div>
+    </CardSpotlight>
   );
 }
 
@@ -266,7 +267,7 @@ export function CategoryDonutChart({ title = "Category Analytics", values }) {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
+    <CardSpotlight className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
       <h3 className="mb-4 text-sm font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
       <div className="mx-auto grid justify-items-center gap-6">
         <div className="relative h-56 w-full max-w-[240px]">
@@ -337,7 +338,7 @@ export function CategoryDonutChart({ title = "Category Analytics", values }) {
           ))}
         </div>
       </div>
-    </div>
+    </CardSpotlight>
   );
 }
 
@@ -362,7 +363,7 @@ export function DepartmentBarChart({ title = "Department Analytics", values }) {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
+    <CardSpotlight className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
       <h3 className="mb-6 text-sm font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -423,7 +424,7 @@ export function DepartmentBarChart({ title = "Department Analytics", values }) {
           ))
         )}
       </div>
-    </div>
+    </CardSpotlight>
   );
 }
 
@@ -439,7 +440,7 @@ export function ResponseTimeBarChart({ title = "Response Time by IT Employee", v
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
+    <CardSpotlight className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
       <h3 className="mb-6 text-sm font-semibold text-slate-800 dark:text-slate-200">{title}</h3>
       <div className="space-y-4">
         {values.length === 0 ? (
@@ -497,6 +498,6 @@ export function ResponseTimeBarChart({ title = "Response Time by IT Employee", v
           Critical ({'>'}8h)
         </span>
       </div>
-    </div>
+    </CardSpotlight>
   );
 }

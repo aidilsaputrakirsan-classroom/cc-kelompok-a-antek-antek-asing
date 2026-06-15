@@ -159,18 +159,18 @@ export default function RegisterPage() {
             </label>
 
             {error && (
-              <Alert 
-                message={error} 
-                type="error" 
+              <Alert
+                message={error}
+                type="error"
                 onClose={() => setError("")}
                 autoClose={true}
                 duration={4000}
               />
             )}
             {success && (
-              <Alert 
-                message={success} 
-                type="success" 
+              <Alert
+                message={success}
+                type="success"
                 onClose={() => setSuccess("")}
                 autoClose={true}
                 duration={3000}
@@ -180,7 +180,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-[#2592ea] py-3 text-lg hover:bg-blue-500"
+              className="w-full rounded-xl py-3 text-lg"
             >
               {loading ? "Processing..." : "Get Started"}
             </Button>

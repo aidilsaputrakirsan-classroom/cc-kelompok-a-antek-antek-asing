@@ -146,7 +146,7 @@ export default function AppShell() {
             { to: "/admin?tab=categories", label: "Categories", tab: "categories" },
           ],
         },
-        { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+        // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
         { type: "link", to: "/status", label: "System Status", tab: "status", icon: Activity },
       ];
     }
@@ -155,7 +155,7 @@ export default function AppShell() {
       return [
         { type: "link", to: "/admin", label: "Overview", tab: "overview", icon: LayoutDashboard },
         { type: "link", to: "/admin?tab=tickets", label: "All Tickets", tab: "tickets", icon: Ticket },
-        { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+        // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
         { type: "link", to: "/status", label: "System Status", tab: "status", icon: Activity },
       ];
     }
@@ -163,7 +163,7 @@ export default function AppShell() {
     if (isAdminLike) {
       return [
         { type: "link", to: "/admin", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
-        { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+        // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
         { type: "link", to: "/status", label: "System Status", tab: "status", icon: Activity },
       ];
     }
@@ -171,7 +171,7 @@ export default function AppShell() {
     return [
       { type: "link", to: "/employee", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
       { type: "link", to: "/employee?tab=my-ticket", label: "My Ticket", tab: "my-ticket", icon: Ticket },
-      { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+      // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
       { type: "link", to: "/status", label: "System Status", tab: "status", icon: Activity },
     ];
   }, [isAdminLike, user?.role]);
@@ -282,7 +282,7 @@ export default function AppShell() {
           <div className="flex h-full flex-col">
             <div className="mb-4 flex items-center gap-2 rounded-xl px-4 py-2 ">
               <img
-                src={sidebarCollapsed ? "/image/logo1-vlue.svg" : "/image/logo-blue.svg"}
+                src={sidebarCollapsed ? "/image/logo1-vlue.svg" : "/image/logo-sidebar.svg"}
                 alt="Antick Async Logo"
                 className={`shrink-0 object-contain ${sidebarCollapsed ? "h-10 w-30" : "h-10 w-30"}`}
               />

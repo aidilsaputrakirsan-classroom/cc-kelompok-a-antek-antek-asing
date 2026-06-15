@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import CardSpotlight from '../components/ui/CardSpotlight';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost';
 
 const SERVICES = [
-  { name: 'Auth Service', icon: '🔐', healthUrl: `${API_URL}/auth/health`, metricsUrl: `${API_URL}/auth/metrics` },
-  { name: 'Item Service', icon: '📦', healthUrl: `${API_URL}/items/health`, metricsUrl: `${API_URL}/items/metrics` },
-  { name: 'API Gateway', icon: '🚪', healthUrl: `${API_URL}/health`, metricsUrl: null },
+  { name: 'Auth Service', icon: '', healthUrl: `${API_URL}/auth/health`, metricsUrl: `${API_URL}/auth/metrics` },
+  { name: 'Item Service', icon: '', healthUrl: `${API_URL}/items/health`, metricsUrl: `${API_URL}/items/metrics` },
+  { name: 'API Gateway', icon: '', healthUrl: `${API_URL}/health`, metricsUrl: null },
 ];
 
 const REFRESH_INTERVAL = 10000; // 10 seconds
@@ -71,7 +72,7 @@ function ErrorRateChart({ services }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-800/60">
       <h3 className="mb-4 text-sm font-semibold text-slate-700 dark:text-slate-200">
-        📊 Error Rate by Service
+        Error Rate by Service
       </h3>
       <div className="space-y-3">
         {services.map((s) => {
@@ -166,7 +167,7 @@ function ServiceCard({ name, icon, healthUrl, metricsUrl, onData }) {
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.unreachable;
 
   return (
-    <div
+    <CardSpotlight
       className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-800/60"
     >
       <div className="relative flex flex-wrap items-center justify-between gap-2">
@@ -192,7 +193,7 @@ function ServiceCard({ name, icon, healthUrl, metricsUrl, onData }) {
           <Metric label="Uptime" value={`${Math.round((metrics.uptime_seconds || 0) / 60)} min`} />
         </div>
       )}
-    </div>
+    </CardSpotlight>
   );
 }
 

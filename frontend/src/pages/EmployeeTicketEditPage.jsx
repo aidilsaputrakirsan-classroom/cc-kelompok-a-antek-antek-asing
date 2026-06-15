@@ -5,10 +5,12 @@ import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { ticketApi } from "../services/api";
+import { useToast } from "../context/useToast";
 
 export default function EmployeeTicketEditPage() {
   const { ticketId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -37,8 +39,10 @@ export default function EmployeeTicketEditPage() {
     setError("");
     try {
       await ticketApi.updateByEmployee(ticketId, form);
+      toast.success("Tiket berhasil diperbarui!");
       navigate(`/employee/tickets/${ticketId}`);
     } catch (err) {
+      toast.error(err.message || "Gagal menyimpan perubahan.");
       setError(err.message || "Gagal menyimpan perubahan.");
     } finally {
       setSubmitting(false);
