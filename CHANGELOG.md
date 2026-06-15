@@ -30,6 +30,29 @@
 
 ---
 
+## [2026-06-15 16:58 WITA] — Fix CI frontend test job by syncing npm lockfile
+
+**Author**: AI Agent (Copilot)
+**Apa yang dirubah**:
+- `frontend/package-lock.json` — disinkronkan ulang dengan `frontend/package.json` menggunakan `npm install` agar dependency tree konsisten untuk `npm ci`.
+- `CHANGELOG.md` — menambahkan entri perubahan ini.
+
+**Kenapa dirubah**:
+GitHub Actions job **⚛️ Test Frontend** gagal di langkah `npm ci` karena lockfile tidak sinkron dengan dependency yang ada di `package.json`.
+
+**Before**:
+- CI gagal dengan error `npm ci` EUSAGE dan daftar dependency yang "Missing from lock file" (mis. `@testing-library/dom@10.4.1`, `dom-accessibility-api@0.5.16`, `pretty-format@27.5.1`, dll).
+- Akibatnya test dan build frontend tidak dijalankan di CI.
+
+**After**:
+- `npm ci` berjalan normal.
+- Validasi lokal frontend berhasil: `npm ci`, `npm test` (7 files, 19 tests passed), dan `npm run build` sukses.
+
+**Alasan melakukan perubahan**:
+Perbaikan paling kecil dan tepat sasaran untuk kasus ini adalah meregenerasi lockfile agar sesuai dengan `package.json`, tanpa mengubah source code aplikasi. Ini memulihkan alur CI existing secara aman dan backward-compatible.
+
+---
+
 ## [2026-06-12 11:30 WITA] — Fix layout form "Tambah Item Baru" yang meluber di halaman /items
 
 **Author**: Muhammad Fikri Haikal Ariadma — dikerjakan via AI Agent (Claude)
