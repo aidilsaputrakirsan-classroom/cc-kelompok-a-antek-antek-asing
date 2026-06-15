@@ -104,6 +104,21 @@ export default function EmployeeDashboardPage() {
     }
   };
 
+  const responseTimeVal = useMemo(() => {
+    const resolvedOrClosed = tickets.filter(
+      (t) => (t.status === "resolved" || t.status === "closed") && t.updated_at && t.created_at
+    );
+    if (resolvedOrClosed.length === 0) return "N/A";
+    
+    let totalHours = 0;
+    resolvedOrClosed.forEach((t) => {
+      const diff = new Date(t.updated_at).getTime() - new Date(t.created_at).getTime();
+      totalHours += diff / (1000 * 60 * 60);
+    });
+    const avg = totalHours / resolvedOrClosed.length;
+    return `${avg.toFixed(1)}h`;
+  }, [tickets]);
+
   const summary = useMemo(() => {
     const total = tickets.length;
     const resolved = tickets.filter((item) => item.status === "resolved" || item.status === "closed").length;
@@ -113,12 +128,10 @@ export default function EmployeeDashboardPage() {
     return [
       { label: "My Tickets", value: total, icon: Ticket },
       { label: "In Progress", value: inProgress, icon: FolderCheck },
-      { label: "Response Time", value: "2.4h", icon: Clock3 },
+      { label: "Response Time", value: responseTimeVal, icon: Clock3 },
       { label: "Resolved", value: resolvedRate, icon: CheckCheck },
     ];
-  }, [tickets]);
-
-  const chartSeries = useMemo(() => buildSeries(tickets), [tickets]);
+  }, [tickets, responseTimeVal]);
 
   const categoryValues = useMemo(() => {
     const palette = ["#2563eb", "#38bdf8", "#a78bfa", "#f59e0b", "#10b981", "#0ea5e9"];
@@ -164,7 +177,7 @@ export default function EmployeeDashboardPage() {
     <div className="space-y-5">
       <section className="rounded-2xl">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-          {activeTab === "my-ticket" ? "My Ticket" : `Welcome ${user?.name || "Employee"}`}
+          {activeTab === "my-ticket" ? "My Ticket" : `Hi, ${user?.name || "Employee"}`}
         </h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           {activeTab === "my-ticket"
@@ -183,14 +196,7 @@ export default function EmployeeDashboardPage() {
 
       {activeTab === "overview" ? (
         <div className="grid gap-4 xl:grid-cols-[1.8fr_1fr]">
-          <ActivityLineChart
-            labels={chartSeries.labels}
-            lines={[
-              { label: "Total", color: "#2563eb", values: chartSeries.totalSeries },
-              { label: "Resolved", color: "#10b981", values: chartSeries.resolvedSeries },
-              { label: "Open", color: "#f59e0b", values: chartSeries.openSeries },
-            ]}
-          />
+          <ActivityLineChart tickets={tickets} />
           <CategoryDonutChart values={categoryValues} />
         </div>
       ) : (

@@ -217,7 +217,12 @@ def update_profile(
         if not update_data:
             raise HTTPException(status_code=400, detail="Tidak ada data yang diubah")
             
-        updated = crud.update_user_profile(db, current_user.id, update_data)
+        updated = crud.update_user_profile(
+            db, 
+            current_user.id, 
+            name=update_data.get("name"), 
+            email=update_data.get("email")
+        )
         if not updated:
             raise HTTPException(status_code=404, detail="User tidak ditemukan")
         return updated

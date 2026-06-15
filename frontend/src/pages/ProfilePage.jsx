@@ -3,6 +3,7 @@ import { LockKeyhole, Save, UserCircle } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { userApi, authApi } from "../services/api";
 import { getAvatarPath } from "../constants/avatars";
+import { useToast } from "../context/useToast";
 import Card from "../components/ui/Card";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
@@ -10,8 +11,7 @@ import AvatarSelector from "../components/AvatarSelector";
 
 export default function ProfilePage() {
   const { user, updateLocalProfile } = useAuth();
-  const [profileMessage, setProfileMessage] = useState("");
-  const [passwordMessage, setPasswordMessage] = useState("");
+  const toast = useToast();
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -38,11 +38,10 @@ export default function ProfilePage() {
       const response = await userApi.updateUserAvatar(index);
       // Ensure latest from server
       updateLocalProfile({ avatar_index: response.avatar_index });
-      setProfileMessage("Avatar berhasil diperbarui!");
-      setTimeout(() => setProfileMessage(""), 3000);
+      toast.success("Avatar berhasil diperbarui!");
     } catch (err) {
       console.error("Failed to update avatar:", err);
-      setProfileMessage(`Gagal mengubah avatar: ${err.detail || err.message}`);
+      toast.error(`Gagal mengubah avatar: ${err.detail || err.message}`);
       // Revert optimistic update
       updateLocalProfile({ avatar_index: user?.avatar_index ?? 0 });
     } finally {
@@ -54,7 +53,7 @@ export default function ProfilePage() {
     event.preventDefault();
 
     if (!profileForm.name || !profileForm.email) {
-      setProfileMessage("Nama dan email harus diisi!");
+      toast.error("Nama dan email harus diisi!");
       return;
     }
 
@@ -75,11 +74,10 @@ export default function ProfilePage() {
         email: response.email,
       });
 
-      setProfileMessage("✅ Profil berhasil diperbarui ke database!");
-      setTimeout(() => setProfileMessage(""), 3000);
+      toast.success("Profil berhasil diperbarui!");
     } catch (err) {
       console.error("Failed to update profile:", err);
-      setProfileMessage(`❌ Gagal menyimpan profil: ${err.detail || err.message}`);
+      toast.error(`Gagal menyimpan profil: ${err.detail || err.message}`);
       // Revert optimistic update
       updateLocalProfile({
         name: user?.name || "",
@@ -99,12 +97,12 @@ export default function ProfilePage() {
     event.preventDefault();
 
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      setPasswordMessage("Lengkapi seluruh field password terlebih dahulu.");
+      toast.error("Lengkapi seluruh field password terlebih dahulu.");
       return;
     }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordMessage("Konfirmasi password baru tidak sama.");
+      toast.error("Konfirmasi password baru tidak sama.");
       return;
     }
 
@@ -115,7 +113,7 @@ export default function ProfilePage() {
         passwordForm.newPassword
       );
       
-      setPasswordMessage(`✅ ${response.message || "Password berhasil diubah."} Sesi direfresh dalam 3 detik.`);
+      toast.success(`${response.message || "Password berhasil diubah."} Sesi direfresh dalam 3 detik.`);
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
@@ -128,7 +126,7 @@ export default function ProfilePage() {
       }, 3000);
     } catch (err) {
       console.error("Failed to change password:", err);
-      setPasswordMessage(`❌ Gagal: ${err.detail || err.message}`);
+      toast.error(`Gagal mengubah password: ${err.detail || err.message}`);
     } finally {
       setPasswordLoading(false);
     }
@@ -168,11 +166,6 @@ export default function ProfilePage() {
               </Button>
             </div>
 
-            {profileMessage && (
-              <p className="rounded-lg border border-emerald-200 dark:border-emerald-900/30 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">
-                {profileMessage}
-              </p>
-            )}
           </form>
         </Card>
 
@@ -245,11 +238,6 @@ export default function ProfilePage() {
             </Button>
           </div>
 
-          {passwordMessage && (
-            <p className="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-              {passwordMessage}
-            </p>
-          )}
         </form>
       </Card>
     </div>

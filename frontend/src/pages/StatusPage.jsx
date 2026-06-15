@@ -11,9 +11,9 @@ const SERVICES = [
 const REFRESH_INTERVAL = 10000; // 10 seconds
 
 const STATUS_CONFIG = {
-  healthy:     { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',  label: 'Healthy' },
-  degraded:    { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'Degraded' },
-  unhealthy:   { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  label: 'Unhealthy' },
+  healthy: { color: '#22c55e', bg: 'rgba(34,197,94,0.12)', label: 'Healthy' },
+  degraded: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'Degraded' },
+  unhealthy: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', label: 'Unhealthy' },
   unreachable: { color: '#6b7280', bg: 'rgba(107,114,128,0.12)', label: 'Unreachable' },
 };
 
@@ -80,8 +80,8 @@ function ErrorRateChart({ services }) {
             (s.errorRate ?? 0) === 0
               ? '#22c55e'
               : (s.errorRate ?? 0) < 5
-              ? '#f59e0b'
-              : '#ef4444';
+                ? '#f59e0b'
+                : '#ef4444';
 
           return (
             <div key={s.name}>
@@ -168,14 +168,7 @@ function ServiceCard({ name, icon, healthUrl, metricsUrl, onData }) {
   return (
     <div
       className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-800/60"
-      style={{ borderLeftWidth: '4px', borderLeftColor: cfg.color }}
     >
-      {/* glow accent */}
-      <div
-        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full opacity-20 blur-2xl transition-opacity duration-500 group-hover:opacity-40"
-        style={{ backgroundColor: cfg.color }}
-      />
-
       <div className="relative flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
           {icon} {name}
@@ -251,28 +244,27 @@ export default function StatusPage() {
   const overallHealthy = healthyCount === SERVICES.length;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6">
+    <div className="space-y-5">
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            📊 System Status
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+            System Status
           </h1>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            Real-time health monitoring for all services
+            Real-time health monitoring for all services.
           </p>
         </div>
 
         <AutoRefreshIndicator intervalMs={REFRESH_INTERVAL} lastRefresh={lastRefresh} />
-      </div>
+      </section>
 
       {/* ── Overall Status Banner ──────────────────────────────── */}
       <div
-        className={`flex items-center gap-3 rounded-2xl border px-5 py-3 text-sm font-medium backdrop-blur transition-colors duration-500 ${
-          overallHealthy
+        className={`flex items-center gap-3 rounded-2xl border px-5 py-3 text-sm font-medium backdrop-blur transition-colors duration-500 ${overallHealthy
             ? 'border-emerald-200 bg-emerald-50/80 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300'
             : 'border-amber-200 bg-amber-50/80 text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300'
-        }`}
+          }`}
       >
         <span className="text-lg">{overallHealthy ? '✅' : '⚠️'}</span>
         {overallHealthy

@@ -191,14 +191,7 @@ export default function AdminPendingUsersPage() {
         loading={actionLoading}
       />
 
-      {/* Auto-refresh Info */}
-      <div className="flex gap-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3">
-        <div className="flex-1">
-          <p className="text-xs text-blue-700 dark:text-blue-300">
-            💡 Auto-refreshing every 10 seconds to check for new registrations
-          </p>
-        </div>
-      </div>
+      
     </div>
   );
 }

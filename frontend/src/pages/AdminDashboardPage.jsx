@@ -292,6 +292,16 @@ export default function AdminDashboardPage() {
 
   const itEmployees = users.filter((item) => item.role === "it_employee" || item.role === "admin");
 
+  const responseTimeVal = useMemo(() => {
+    if (!responseTimeAnalytics || responseTimeAnalytics.length === 0) return "N/A";
+    const withTickets = responseTimeAnalytics.filter(item => item.ticket_count > 0);
+    if (withTickets.length === 0) return "0.0h";
+    const totalHours = withTickets.reduce((sum, item) => sum + (item.avg_response_hours * item.ticket_count), 0);
+    const totalTickets = withTickets.reduce((sum, item) => sum + item.ticket_count, 0);
+    const avg = totalHours / totalTickets;
+    return `${avg.toFixed(1)}h`;
+  }, [responseTimeAnalytics]);
+
   const summary = useMemo(() => {
     const total = dashboard?.total_tickets ?? tickets.length;
     const resolved = (dashboard?.by_status?.resolved || 0) + (dashboard?.by_status?.closed || 0);
@@ -301,12 +311,10 @@ export default function AdminDashboardPage() {
     return [
       { label: "Total Tickets", value: total, icon: Ticket },
       { label: "Active Users", value: activeUsers, icon: Users },
-      { label: "Response Time", value: "2.4h", icon: Clock3 },
+      { label: "Response Time", value: responseTimeVal, icon: Clock3 },
       { label: "Resolved", value: resolvedRate, icon: CheckCheck },
     ];
-  }, [dashboard, tickets.length, users]);
-
-  const chartSeries = useMemo(() => buildSeries(tickets), [tickets]);
+  }, [dashboard, tickets.length, users, responseTimeVal]);
 
   const categoryValues = useMemo(() => {
     const palette = ["#2563eb", "#38bdf8", "#a78bfa", "#f59e0b", "#10b981", "#0ea5e9"];
@@ -330,7 +338,7 @@ export default function AdminDashboardPage() {
 
   const tabMeta = {
     overview: {
-      title: `Welcome ${user?.name || "Admin"}`,
+      title: `Hi, ${user?.name || "Admin"}`,
       subtitle: "Here is your support performance overview.",
     },
     tickets: {
@@ -565,14 +573,7 @@ export default function AdminDashboardPage() {
           </section>
 
           <div className="grid gap-4 xl:grid-cols-[1.8fr_1fr]">
-            <ActivityLineChart
-              labels={chartSeries.labels}
-              lines={[
-                { label: "Total", color: "#2563eb", values: chartSeries.totalSeries },
-                { label: "Resolved", color: "#10b981", values: chartSeries.resolvedSeries },
-                { label: "Open", color: "#f59e0b", values: chartSeries.openSeries },
-              ]}
-            />
+            <ActivityLineChart tickets={tickets} />
             <CategoryDonutChart values={categoryValues} />
           </div>
 

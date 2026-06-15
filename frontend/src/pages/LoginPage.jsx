@@ -60,7 +60,7 @@ export default function LoginPage() {
           <div className="pointer-events-none absolute -right-8 top-20 h-36 w-36 rounded-full" />
 
           <div className="relative flex flex-col items-center gap-3 px-6 pt-6 md:px-8 md:pt-8">
-            <img src="/image/AA_HD.png" alt="Logo Antick Async" className="h-24" />
+            <img src="/image/logofix.svg" alt="Logo Antick Async" className="h-24" />
             <p className="mt-3 text-lg text-blue-50/95">"Support That Works on Your Time"</p>
           </div>
 
