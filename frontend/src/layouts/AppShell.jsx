@@ -156,7 +156,6 @@ export default function AppShell() {
         { type: "link", to: "/admin", label: "Overview", tab: "overview", icon: LayoutDashboard },
         { type: "link", to: "/admin?tab=tickets", label: "All Tickets", tab: "tickets", icon: Ticket },
         // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
-        { type: "link", to: "/status", label: "System Status", tab: "status", icon: Activity },
       ];
     }
 
@@ -164,7 +163,6 @@ export default function AppShell() {
       return [
         { type: "link", to: "/admin", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
         // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
-        { type: "link", to: "/status", label: "System Status", tab: "status", icon: Activity },
       ];
     }
 
@@ -172,7 +170,6 @@ export default function AppShell() {
       { type: "link", to: "/employee", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
       { type: "link", to: "/employee?tab=my-ticket", label: "My Ticket", tab: "my-ticket", icon: Ticket },
       // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
-      { type: "link", to: "/status", label: "System Status", tab: "status", icon: Activity },
     ];
   }, [isAdminLike, user?.role]);
 

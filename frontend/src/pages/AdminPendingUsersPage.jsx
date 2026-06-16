@@ -61,12 +61,18 @@ export default function AdminPendingUsersPage() {
   };
 
   // Handle actual approval
-  const handleApproveConfirm = async (userId, department, notes) => {
+  const handleApproveConfirm = async (userId, departmentId, notes) => {
     setActionLoading(true);
     try {
-      await approvePendingUser(userId, department);
+      await approvePendingUser(userId, departmentId);
+
+      // Auto-set role berdasarkan departemen: IT -> it_employee, selain itu -> employee
+      const departmentName = departments.find((dept) => dept.id === departmentId)?.name || "";
+      const autoRole = departmentName.trim().toUpperCase() === "IT" ? "it_employee" : "employee";
+      await adminApi.updateUserRole(userId, autoRole);
+
       addNotification(
-        `User "${selectedUser.name}" approved and assigned to ${department}`,
+        `User "${selectedUser.name}" approved and assigned to ${departmentName || "department"} as ${autoRole}`,
         "success"
       );
       setApprovalModalOpen(false);

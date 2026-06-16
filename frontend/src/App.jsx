@@ -49,7 +49,11 @@ const router = createBrowserRouter([
         children: [
           { path: "/profile", element: <ProfilePage /> },
           { path: "/items", element: <ItemsPage /> },
-          { path: "/status", element: <StatusPage /> },
+          {
+            path: "/status",
+            element: <ProtectedRoute allowedRoles={["superadmin", "admin"]} />,
+            children: [{ index: true, element: <StatusPage /> }],
+          },
           {
             path: "/admin",
             element: <ProtectedRoute allowedRoles={["superadmin", "admin", "it_employee"]} />,

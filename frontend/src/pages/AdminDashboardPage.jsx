@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Pencil, Plus, Trash2, User, Eye, Ticket, Users } from "lucide-react";
+import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Pencil, Plus, RefreshCw, RotateCcw, Trash2, User, Eye, Ticket, Users } from "lucide-react";
 import { adminApi, categoryApi, ticketApi } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/useToast";
@@ -16,7 +16,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import { ActivityLineChart, CategoryDonutChart, DepartmentBarChart, ResponseTimeBarChart } from "../components/dashboard/ChartPanels";
 
 const statusOptions = ["open", "in_progress", "resolved", "closed"];
-const roleOptions = ["employee", "it_employee", "admin", "superadmin"];
+const roleOptions = ["employee", "it_employee", "admin"];
 const priorityOptions = ["low", "medium", "high", "urgent"];
 const validTabs = ["overview", "tickets", "users", "categories", "departments"];
 
@@ -570,6 +570,27 @@ export default function AdminDashboardPage() {
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{tabMeta[activeTab].subtitle}</p>
         </div>
 
+        {activeTab === "tickets" && (
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setFilters({ search: "", status: "", priority: "", assignee: "" })}
+              variant="secondary"
+              className="inline-flex items-center gap-2 rounded-xl"
+            >
+              <RotateCcw size={16} aria-hidden="true" />
+              Reset Filter
+            </Button>
+            <Button
+              onClick={loadData}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-xl"
+            >
+              <RefreshCw size={16} aria-hidden="true" className={loading ? "animate-spin" : ""} />
+              Refresh
+            </Button>
+          </div>
+        )}
+
         {activeTab === "categories" && (
           <Button
             onClick={() => setIsCreateCategoryOpen(true)}
@@ -808,7 +829,7 @@ export default function AdminDashboardPage() {
                     <td className="py-2">
                       {editingUserDepartment === item.id ? (
                         <ThemedSelect
-                          value={item.role}
+                          value={departmentEditMode?.role ?? item.role}
                           onChange={(e) => setDepartmentEditMode((prev) => ({ ...prev, role: e.target.value }))}
                           className="rounded-lg bg-white dark:bg-slate-800 py-1.5 pr-8 text-xs"
                         >
