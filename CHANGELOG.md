@@ -30,6 +30,88 @@
 
 ---
 
+## [2026-06-17 00:30 WITA] — Tutup gap Reliability (retry+circuit breaker) & Dockerfile non-root/multi-stage
+
+**Author**: Muhammad Fikri Haikal Ariadma (Lead DevOps) — dikerjakan via AI Agent (Claude)
+**Apa yang dirubah**:
+- `services/item-service/auth_client.py` — tambah retry dengan exponential
+  backoff (1s/2s, maks 3 percobaan) untuk panggilan `GET /verify` ke
+  auth-service, **hanya** untuk kegagalan transient (`ConnectError`,
+  `TimeoutException`, status 5xx) — 401/403 (token salah) **tidak** di-retry.
+  Tambah `CircuitBreaker` in-memory (CLOSED → OPEN setelah 5 kegagalan
+  beruntun → fail-fast 503 tanpa memanggil auth-service sama sekali →
+  HALF_OPEN setelah cooldown 30 detik → CLOSED lagi kalau trial berhasil).
+- `services/item-service/tests/integration/test_auth_client_reliability.py` —
+  **file baru**: 6 integration test (mock HTTP via `respx`) yang
+  memverifikasi: request normal sukses, 401 tidak di-retry, 503 di-retry lalu
+  sukses, retry habis tetap 503, circuit breaker OPEN setelah threshold +
+  fail-fast tanpa HTTP call tambahan, circuit breaker recover setelah cooldown.
+- `services/item-service/{pytest.ini,tests/conftest.py,requirements.txt}` —
+  setup test (pytest, pytest-asyncio, pytest-cov, respx) untuk item-service
+  yang sebelumnya tidak punya test sama sekali.
+- `.github/workflows/ci.yml` — job baru `test-item-service` (jalan paralel
+  dengan `test-backend`/`test-frontend`), `build-docker` sekarang `needs:`
+  ketiga job ini — integration test reliability ikut jadi gate CI.
+- `services/auth-service/Dockerfile` & `services/item-service/Dockerfile` —
+  diubah jadi **multi-stage** (`builder` install deps ke venv → stage final
+  cuma `COPY --from=builder`) dan tambah **non-root user**
+  (`useradd appuser` + `USER appuser`), menyamai pola yang sudah benar di
+  `backend/Dockerfile` (legacy) tapi sebelumnya belum diterapkan ke kode aktif.
+
+**Kenapa dirubah**:
+Permintaan user untuk menutup 2 gap yang ditemukan saat audit kesiapan UAS:
+(1) Reliability (Minggu 13) — retry/circuit breaker/integration test belum
+ada sama sekali; (2) Dockerfile kode aktif (`services/*`) belum non-root/
+multi-stage padahal rubrik arsitektur menilai itu, dan `backend/Dockerfile`
+(legacy, tidak terpakai) sudah lebih baik di sisi ini.
+
+**Before**:
+- `auth_client.py` cuma punya `timeout=5.0` + tangkap `ConnectError`/
+  `TimeoutException` jadi 503/504 — tidak ada retry, tidak ada circuit
+  breaker, tidak ada test sama sekali untuk komunikasi antar-service.
+- `services/auth-service/Dockerfile` & `services/item-service/Dockerfile`:
+  single-stage (`FROM ... RUN pip install ... COPY . . CMD ...`), tidak ada
+  `USER` directive — container jalan sebagai `root`.
+- CI hanya test `backend/` (legacy) dan `frontend/` — tidak ada test untuk
+  kode microservices aktif sama sekali.
+
+**After**:
+- item-service retry otomatis saat auth-service gagal sementara (5xx/timeout/
+  connection error), maksimal 3x dengan backoff naik; kalau auth-service
+  down terus-menerus (≥5 kegagalan beruntun), circuit breaker OPEN dan
+  request berikutnya langsung dapat 503 tanpa membombardir auth-service yang
+  sedang down — recover otomatis (HALF_OPEN → CLOSED) setelah 30 detik kalau
+  auth-service sudah pulih.
+- 6 integration test baru, semua lolos (`pytest` di `services/item-service`).
+- Kedua Dockerfile aktif sekarang multi-stage + non-root. **Diverifikasi
+  langsung di server production**: `docker exec antick-async-auth-service
+  whoami` dan `docker exec antick-async-item-service whoami` keduanya
+  mengembalikan `appuser`, bukan `root`.
+- CI sekarang punya 4 job: `test-backend`, `test-frontend`,
+  `test-item-service` (baru), `build-docker` (depends ke 3 job pertama).
+- Verifikasi end-to-end di production: stack di-rebuild & restart penuh,
+  7/7 container healthy, login + akses `/items` (dengan & tanpa token)
+  bekerja normal, data tetap utuh (7 user, 4 tiket) — tidak ada downtime
+  data, log JSON menunjukkan correlation ID tetap diteruskan dengan benar
+  melalui jalur retry yang baru.
+
+**Alasan melakukan perubahan**:
+Retry hanya diterapkan untuk kegagalan transient (5xx/timeout/connection
+error), sengaja **tidak** untuk 401/403, karena token yang salah tetap salah
+berapa kali pun dicoba — retry di kasus itu cuma buang waktu dan menunda
+respons ke user tanpa mengubah hasil. Circuit breaker dipakai di atas retry
+(bukan pengganti) supaya saat auth-service benar-benar down lama, item-service
+tidak terus-menerus mencoba (3x retry per request × banyak request bersamaan)
+yang justru memperparah auth-service yang sedang pulih — fail-fast jauh lebih
+murah. Threshold 5 kegagalan & cooldown 30 detik dipilih sebagai nilai wajar
+untuk skala project ini (bukan hasil tuning beban produksi nyata) dan mudah
+diubah lewat parameter constructor `CircuitBreaker` kalau perlu disesuaikan.
+Dockerfile disalin polanya dari `backend/Dockerfile` (sudah terbukti benar)
+daripada dirancang ulang dari nol, untuk konsistensi dan mengurangi risiko
+kesalahan baru.
+
+---
+
 ## [2026-06-16 23:30 WITA] — Perbesar lagi animasi mood API Gateway di System Status
 
 **Author**: Muhammad Fikri Haikal Ariadma (Lead DevOps) — dikerjakan via AI Agent (Claude)

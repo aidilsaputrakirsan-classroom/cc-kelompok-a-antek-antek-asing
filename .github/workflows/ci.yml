@@ -6,9 +6,11 @@
 # - Pull Request ke branch main
 #
 # Jobs:
-# 1. test-backend  : Install deps + run pytest (SQLite in-memory)
-# 2. test-frontend : Install deps + run Vitest + build Vite
-# 3. build-docker  : Build Docker images (hanya jika kedua test PASS)
+# 1. test-backend           : Install deps + run pytest (SQLite in-memory)
+# 2. test-frontend          : Install deps + run Vitest + build Vite
+# 3. test-item-service      : Integration test reliability (retry/circuit
+#                              breaker) komunikasi item-service -> auth-service
+# 4. build-docker           : Build Docker images (hanya jika semua test PASS)
 #
 # Optimasi:
 # - concurrency: cancel run lama jika ada push baru ke branch yang sama
@@ -120,12 +122,51 @@ jobs:
 
 
   # ================================
-  # JOB 3: Build Docker Images
+  # JOB 3: Integration Test — Item Service <-> Auth Service reliability
+  # ================================
+  test-item-service:
+    name: 🔗 Integration Test Item Service
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: ./services/item-service
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 📦 Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-item-service-${{ hashFiles('services/item-service/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-item-service-
+
+      - name: 📥 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🧪 Run reliability integration tests (retry + circuit breaker)
+        run: pytest
+
+
+
+  # ================================
+  # JOB 4: Build Docker Images
   # ================================
   build-docker:
     name: 🐳 Build Docker
     runs-on: ubuntu-latest
-    needs: [test-backend, test-frontend]    # Hanya jalan jika KEDUA test PASS
+    needs: [test-backend, test-frontend, test-item-service]    # Hanya jalan jika SEMUA test PASS
     timeout-minutes: 10
 
     steps:
