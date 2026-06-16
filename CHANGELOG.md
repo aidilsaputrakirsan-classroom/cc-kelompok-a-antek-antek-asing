@@ -30,6 +30,50 @@
 
 ---
 
+## [2026-06-16 18:05 WITA] — Pull `main` (merge PR #31 dari `bagas-frontend`) & rebuild frontend + auth-service
+
+**Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
+**Apa yang dirubah**:
+- Tidak ada perubahan source code baru oleh saya — operasional: `git pull origin main`
+  (fast-forward gagal karena `CHANGELOG.md` berubah di kedua sisi, jadi merge manual:
+  gabungkan entri baru saya dengan entri Copilot "Fix CI frontend test job" yang masuk
+  lewat PR #31, tanpa kehilangan salah satu); commit merge `54a2224`.
+- Setelah pull, jalankan ulang `npm ci && npm run build` (frontend — banyak file di
+  `frontend/src/**`, `frontend/public/**`, font, dan komponen UI baru berubah dari PR #31)
+  lalu `docker compose build frontend && docker compose up -d frontend`.
+- `services/auth-service/crud.py` dan `main.py` juga berubah di PR #31 → rebuild &
+  restart `auth-service` juga (`docker compose build auth-service && docker compose up -d
+  auth-service`) agar behavior backend ikut sinkron, bukan cuma tampilan.
+
+**Kenapa dirubah**:
+PR #31 (merge branch `bagas-frontend` ke `main`) membawa banyak perubahan UI (font Lufga,
+logo baru, halaman dashboard/login/register/profile, `CardSpotlight.jsx` baru, dll.) plus
+perubahan kecil di `auth-service`. Server akses (laptop ini) harus disinkronkan supaya
+tampilan & behavior yang dilihat user benar-benar versi terbaru `main`, bukan versi sebelum
+merge.
+
+**Before**:
+- Local `main` di commit `0c21438`/`cb84bc1`, tertinggal 6 commit dari `origin/main`
+  (`2b0d2a6`). `frontend/dist` dan image `auth-service` jalan masih berdasarkan kode sebelum
+  PR #31.
+
+**After**:
+- `main` lokal di `54a2224` (merge commit), 2 commit di depan `origin/main` (entri
+  CHANGELOG lokal + merge) — belum di-push.
+- `frontend/dist` di-build ulang (asset baru `index-BZKTwW77.js`), image frontend &
+  auth-service di-rebuild dan container direstart. Diverifikasi: 7/7 container
+  healthy/running, `/health`, `/auth/health`, `/items/health` semua 200, dan hash asset JS
+  di HTML yang disajikan gateway cocok dengan output build terbaru.
+
+**Alasan melakukan perubahan**:
+Konflik `CHANGELOG.md` diselesaikan dengan menggabungkan (bukan menimpa) kedua entri karena
+keduanya sah dan independen — sesuai aturan §1 CLAUDE.md bahwa setiap perubahan harus tetap
+tercatat. Auth-service ikut di-rebuild meski permintaan awal hanya soal tampilan frontend,
+karena PR yang sama juga mengubah backend — membiarkan auth-service jalan dengan image lama
+berisiko perilaku tidak konsisten dengan kode `main` saat ini.
+
+---
+
 ## [2026-06-16 17:45 WITA] — Rebuild frontend lokal agar sinkron dengan production (commit terbaru `main`)
 
 **Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
