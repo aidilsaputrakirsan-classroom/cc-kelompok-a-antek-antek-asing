@@ -30,6 +30,76 @@
 
 ---
 
+## [2026-06-16 22:00 WITA] — Rewrite menyeluruh README.md: tech stack di awal, quick start clone-to-run, env vars akurat
+
+**Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
+**Apa yang dirubah**:
+- `README.md` — ditulis ulang menyeluruh. Tambahan/perbaikan utama:
+  - Tabel **Tech Stack** dipindah ke paling atas (tepat di bawah judul & badge CI),
+    sebelumnya ada di tengah dokumen.
+  - Section **Quick Start** baru: langkah lengkap clone → `.env` setup → build frontend
+    → `docker compose up` → verifikasi → login → hot-reload dev, lengkap dengan
+    peringatan dua gotcha nyata yang ditemukan tim sebelumnya: (a) `SECRET_KEY`/
+    `CORS_ORIGINS` format JSON array di `.env` root (root cause auth-service
+    crash-loop), (b) `npm run build` biasa memuat `frontend/.env.production` yang
+    mengarah ke domain live tim (`api.antick-async.online`), bukan `localhost` — untuk
+    testing lokal murni harus pakai `npm run build:dev`.
+  - Section **Environment Variables** diperbaiki total: sebelumnya menyebut `.env`
+    per-service (`services/auth-service/.env`, `services/item-service/.env`) yang
+    **tidak sesuai struktur project sebenarnya** (satu `.env` di root, dibaca via
+    `env_file`/variable substitution docker-compose).
+  - Section baru: **Mode Development vs Production** (`make dev`/`make prod`/build
+    biasa), **Makefile & Scripts** (daftar target + script di `scripts/`), dan
+    **Troubleshooting** (5 masalah umum + solusi, diambil dari insiden nyata yang
+    sudah dicatat di entri-entri CHANGELOG sebelumnya).
+  - Role & RBAC, fitur utama, arsitektur (diagram mermaid), dan API endpoint summary
+    disinkronkan dengan kondisi kode saat ini (termasuk endpoint baru
+    `reset-password`/`delete user`, auto-role approval, dll dari sesi-sesi sebelumnya).
+  - Perbaiki link dokumentasi yang sebelumnya salah nama file (`docs/ui-testing.md`
+    tidak ada — diganti `docs/testing-ui-projek.md` + `docs/ui-test-results.md`;
+    `docs/reliability-testing.md` sebenarnya bernama `docs/reliability-testing .md`
+    dengan spasi di nama file).
+  - Project Structure tree diperbarui agar mencerminkan struktur folder
+    `frontend/src` (context/hooks/layouts/routes) dan `services/*` yang sebenarnya.
+
+**Kenapa dirubah**:
+Permintaan user (Lead DevOps): README harus bisa menjelaskan project secara detail dan
+memandu siapa pun dari clone repo sampai berhasil running di lokal, plus tech stack
+harus ditampilkan di bagian awal dokumen.
+
+**Before**:
+- README tidak menyebutkan setup `.env` sama sekali sebelum instruksi run — pembaca baru
+  akan langsung gagal start `auth-service` (persis insiden yang dialami tim sendiri).
+- Section "Running with Docker Compose" rusak secara markdown (ada code block nested/
+  tidak ditutup dengan benar).
+- Instruksi backend hanya menyebut monolith legacy (`cd backend && uvicorn main:app`)
+  sebagai jalur utama, padahal kode aktif ada di `services/`.
+- Tidak ada penjelasan bahwa frontend harus di-build manual dulu sebelum
+  `docker compose up` (frontend Dockerfile hanya `COPY dist`).
+- Tech stack ada di tengah dokumen (setelah section Tim), tidak di awal.
+- Beberapa link dokumentasi 404 karena nama file salah/berbeda.
+
+**After**:
+- Kontributor baru bisa clone → copy `.env.example` → isi `SECRET_KEY`/password → build
+  frontend → `docker compose up --build -d` → langsung jalan, tanpa perlu menebak-nebak
+  atau mengulang kegagalan yang sudah pernah dialami tim.
+- Tech stack tampil di paragraf kedua, langsung di bawah judul.
+- Semua link dokumentasi diverifikasi mengarah ke file yang benar-benar ada di `docs/`.
+- Verifikasi: dibaca ulang heading-by-heading memastikan semua entri Table of Contents
+  punya section yang sesuai; tidak ada perubahan kode (`.md` only), tidak perlu rebuild
+  Docker.
+
+**Alasan melakukan perubahan**:
+README adalah pintu masuk pertama siapa pun yang baru clone repo — kegagalan setup yang
+sudah dialami tim sendiri (SECRET_KEY kosong, CORS_ORIGINS format salah, frontend/dist
+basi, build mode salah memanggil API production) seharusnya tidak terulang ke anggota
+tim lain atau penilai/reviewer eksternal hanya karena tidak terdokumentasi. Konten env
+vars dan struktur project ditulis ulang berdasarkan pengecekan langsung ke
+`docker-compose.yml`/`.env.example`/`Makefile` saat ini (bukan disalin dari versi README
+lama yang sudah usang), supaya akurat terhadap kondisi repo saat ini.
+
+---
+
 ## [2026-06-16 21:15 WITA] — Perbesar animasi Lottie, metrics hanya catat error kritis (5xx), modal konfirmasi global
 
 **Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
