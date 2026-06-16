@@ -36,8 +36,8 @@ function ServiceMoodAnimation({ healthy }) {
   if (!animationData) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-12 flex justify-center">
-      <div className="h-40 w-40">
+    <div className="pointer-events-none absolute inset-x-10 top-0 flex justify-center">
+      <div className="h-[176px] w-[176px]">
         <Lottie animationData={animationData} loop autoplay />
       </div>
     </div>
