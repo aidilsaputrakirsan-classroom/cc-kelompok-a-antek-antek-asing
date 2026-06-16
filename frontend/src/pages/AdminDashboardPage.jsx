@@ -4,6 +4,7 @@ import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Filter, KeyRou
 import { adminApi, categoryApi, ticketApi } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/useToast";
+import { useConfirm } from "../context/ConfirmContext";
 import { getAvatarPath } from "../constants/avatars";
 import { AnimatedMetricValue } from "../components/AnimatedMetricValue";
 import Card from "../components/ui/Card";
@@ -169,6 +170,7 @@ function ThemedSelect({ value, onChange, children, className = "", leftAdornment
 export default function AdminDashboardPage() {
   const { user } = useAuth();
   const toast = useToast();
+  const confirm = useConfirm();
   const [searchParams] = useSearchParams();
   const queryTab = searchParams.get("tab");
   const queryFilter = (searchParams.get("q") || "").trim().toLowerCase();
@@ -401,9 +403,12 @@ export default function AdminDashboardPage() {
   };
 
   const resetUserPassword = async (item) => {
-    const confirmReset = window.confirm(
-      `Reset password "${item.name}" menjadi default (Password123!)?`
-    );
+    const confirmReset = await confirm({
+      title: "Reset Password",
+      message: `Reset password "${item.name}" menjadi default (Password123!)?`,
+      confirmText: "Reset Password",
+      tone: "primary",
+    });
     if (!confirmReset) return;
 
     try {
@@ -416,7 +421,11 @@ export default function AdminDashboardPage() {
   };
 
   const deleteUser = async (item) => {
-    const confirmDelete = window.confirm(`Hapus user "${item.name}"? Tindakan ini tidak dapat dibatalkan.`);
+    const confirmDelete = await confirm({
+      title: "Hapus User",
+      message: `Hapus user "${item.name}"? Tindakan ini tidak dapat dibatalkan.`,
+      confirmText: "Hapus",
+    });
     if (!confirmDelete) return;
 
     try {
@@ -446,9 +455,11 @@ export default function AdminDashboardPage() {
 
   const bulkDeleteUsers = async () => {
     if (selectedUserIds.length === 0) return;
-    const confirmDelete = window.confirm(
-      `Hapus ${selectedUserIds.length} user terpilih? Tindakan ini tidak dapat dibatalkan.`
-    );
+    const confirmDelete = await confirm({
+      title: "Hapus User Terpilih",
+      message: `Hapus ${selectedUserIds.length} user terpilih? Tindakan ini tidak dapat dibatalkan.`,
+      confirmText: "Hapus Semua",
+    });
     if (!confirmDelete) return;
 
     const results = await Promise.allSettled(
@@ -504,7 +515,11 @@ export default function AdminDashboardPage() {
   };
 
   const deleteCategory = async (categoryId) => {
-    const confirmDelete = window.confirm("Hapus kategori ini?");
+    const confirmDelete = await confirm({
+      title: "Hapus Kategori",
+      message: "Hapus kategori ini? Tindakan ini tidak dapat dibatalkan.",
+      confirmText: "Hapus",
+    });
     if (!confirmDelete) return;
 
     try {
@@ -554,7 +569,11 @@ export default function AdminDashboardPage() {
   };
 
   const deleteDepartment = async (deptId) => {
-    const confirmDelete = window.confirm("Hapus departemen ini?");
+    const confirmDelete = await confirm({
+      title: "Hapus Departemen",
+      message: "Hapus departemen ini? Tindakan ini tidak dapat dibatalkan.",
+      confirmText: "Hapus",
+    });
     if (!confirmDelete) return;
 
     try {

@@ -3,6 +3,7 @@ import ItemForm from "../components/ItemForm";
 import ItemList from "../components/ItemList";
 import { itemApi } from "../services/api";
 import { useToast } from "../context/useToast";
+import { useConfirm } from "../context/ConfirmContext";
 import { Package, TrendingUp, DollarSign, Award, RefreshCw, AlertTriangle } from "lucide-react";
 
 export default function ItemsPage() {
@@ -24,6 +25,7 @@ export default function ItemsPage() {
   const [error, setError] = useState("");
 
   const { addToast } = useToast();
+  const confirm = useConfirm();
 
   // Fetch Items list and Stats
   const fetchData = useCallback(async (searchVal = searchQuery) => {
@@ -112,7 +114,12 @@ export default function ItemsPage() {
 
   // Handle Delete
   const handleDelete = async (itemId) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus item ini?")) return;
+    const confirmed = await confirm({
+      title: "Hapus Item",
+      message: "Apakah Anda yakin ingin menghapus item ini? Tindakan ini tidak dapat dibatalkan.",
+      confirmText: "Hapus",
+    });
+    if (!confirmed) return;
     setDeletingItemId(itemId);
     try {
       await itemApi.remove(itemId);

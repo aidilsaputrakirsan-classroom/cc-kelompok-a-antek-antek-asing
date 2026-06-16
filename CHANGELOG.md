@@ -30,6 +30,88 @@
 
 ---
 
+## [2026-06-16 21:15 WITA] — Perbesar animasi Lottie, metrics hanya catat error kritis (5xx), modal konfirmasi global
+
+**Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
+**Apa yang dirubah**:
+- `frontend/src/pages/StatusPage.jsx` — animasi mood card API Gateway diperbesar 2x
+  (dari `h-20 w-20` jadi `h-40 w-40`) dengan posisi `absolute` (bukan flow normal) di
+  dalam card yang sudah `relative overflow-hidden`, sehingga ukuran box card tidak
+  berubah walau animasinya lebih besar (overflow otomatis ter-crop oleh card).
+- `services/shared/metrics.py` (+ disinkronkan ke `services/auth-service/shared/metrics.py`
+  dan `services/item-service/shared/metrics.py`) — `MetricsCollector` sekarang hanya
+  menghitung status code **>= 500** sebagai "error" (sebelumnya >= 400). Ini memengaruhi
+  `error_count`, `error_rate_percent`, dan ambang alert internal di seluruh service.
+- `frontend/src/context/ConfirmContext.jsx` — **file baru**: `ConfirmProvider` +
+  `useConfirm()` hook, modal konfirmasi reusable di tengah halaman dengan animasi
+  ringan (fade + scale-in saat muncul, scale-out saat menutup), tombol Confirm bertema
+  `danger` (merah) untuk aksi destruktif atau `primary` (biru) untuk aksi non-destruktif.
+- `frontend/src/App.jsx` — daftarkan `ConfirmProvider` di pohon provider root.
+- `frontend/src/pages/AdminDashboardPage.jsx`, `AdminPendingUsersPage.jsx`,
+  `ItemsPage.jsx` — ganti semua `window.confirm(...)` (dialog browser native) dengan
+  `await confirm({...})` dari `useConfirm()`: hapus kategori, hapus departemen, reset
+  password user, hapus user (single & bulk), reject pending user, hapus item.
+
+**Kenapa dirubah**:
+Permintaan user: (1) animasi kucing di card API Gateway terlalu kecil, minta 2x lebih
+besar tapi card jangan ikut membesar; (2) laporan bug fitur reset password — setelah
+investigasi (lihat bagian "Investigasi" di bawah), **tidak ditemukan data hilang**;
+(3) halaman System Status mencatat error 4xx (login salah, dst) yang membuatnya
+terlihat seperti banyak error padahal bukan kegagalan sistem — minta hanya error kritis
+yang membuat sistem tidak berjalan yang dicatat; (4) semua aksi konfirmasi (delete,
+reset password, reject) masih pakai `window.confirm()` browser bawaan yang tidak
+konsisten dengan desain aplikasi — minta modal kustom di tengah halaman dengan animasi.
+
+**Investigasi bug "reset password menghapus semua data" (poin 2)**:
+Dicek langsung ke database production via API setelah laporan masuk: `GET /users` →
+total tetap **7 user**, `GET /tickets` → total tetap **4 tiket**, seluruh field
+(nama, role, department, requester, assignee, timestamp) masih sama seperti sebelum
+fitur reset password dipakai. Kode `crud.reset_user_password()` dan
+`crud.delete_user()` keduanya di-scope ketat via `WHERE id = :user_id` (ORM, primary
+key) — tidak ada query yang menyentuh tabel lain atau row lain. **Tidak ditemukan bug
+yang menyebabkan data hilang di level backend/database.** Kemungkinan yang teramati
+user adalah salah satu dari: tampilan filter/halaman yang berubah sesaat, atau cache
+browser yang menampilkan state lama. **Belum ada perubahan kode untuk poin ini** —
+butuh langkah reproduksi yang lebih spesifik (akun mana yang di-reset, halaman apa yang
+terlihat "ter-reset") untuk lanjut investigasi kalau bug ini muncul lagi.
+
+**Before**:
+- Animasi mood gateway `h-20 w-20` dalam flow normal dokumen (ikut mendorong tinggi
+  card kalau diperbesar).
+- `is_error = status_code >= 400` — error rate ikut menghitung 401 (login salah,
+  token expired) dan 404/422 sebagai "error", membuat metric terlihat lebih buruk dari
+  kondisi sistem yang sebenarnya.
+- Semua konfirmasi pakai `window.confirm()` — dialog browser polos, tidak bisa
+  di-styling, tidak konsisten dengan desain dark/light mode aplikasi.
+
+**After**:
+- Animasi mood gateway 160×160px (2x), posisi absolute di dalam card yang
+  `overflow-hidden` — ukuran card di grid tidak berubah.
+- Hanya status code 5xx (Internal Server Error, dst — kegagalan sistem nyata) yang
+  dihitung sebagai error di `/auth/metrics` dan `/items/metrics`. Diverifikasi:
+  `error_count: 0` segera setelah rebuild (tidak ada 5xx terjadi), behavior 4xx
+  (login salah dll.) tetap sama dari sisi user, hanya tidak lagi memengaruhi metric.
+- Semua titik konfirmasi (7 lokasi di 3 halaman) pakai modal kustom terpusat dengan
+  animasi fade+scale, ikon kontekstual (warning untuk destructive, help untuk lainnya),
+  dan tombol bertema sesuai tingkat risiko aksi.
+- Verifikasi: `npm run build` sukses, `npm test` 19/19 lolos, data production
+  diverifikasi tetap 7 user + 4 tiket setelah rebuild & restart container, image
+  frontend/auth-service/item-service di-rebuild dan semua container healthy.
+
+**Alasan melakukan perubahan**:
+Posisi `absolute` dipilih (bukan ubah ukuran lalu kompensasi margin negatif) karena
+lebih predictable — ukuran card ditentukan murni oleh konten metrics, bukan ikut
+terpengaruh ukuran animasi dekoratif. Ambang error diturunkan ke 5xx saja karena status
+4xx pada arsitektur REST ini representasi error di sisi client/permintaan (kredensial
+salah, validasi gagal, dsb), bukan indikasi backend/infrastruktur gagal — selaras
+dengan tujuan halaman Status sebagai indikator kesehatan *sistem*, bukan log audit
+semua request. Modal konfirmasi dibuat sebagai context/hook tunggal (bukan duplikasi
+modal di setiap halaman) supaya konsisten dan mudah dipakai ulang di fitur mendatang;
+nama file dan pola peniruan sengaja mengikuti `useToast.js` yang sudah ada di project
+agar gaya kode konsisten.
+
+---
+
 ## [2026-06-16 20:30 WITA] — Bulk delete & reset password user, debug error System Status, animasi mood Lottie API Gateway
 
 **Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma

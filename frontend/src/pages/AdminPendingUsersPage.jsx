@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { usePendingUsers } from "../hooks/usePendingUsers";
 import { useNotification } from "../hooks/useNotification";
+import { useConfirm } from "../context/ConfirmContext";
 import { adminApi } from "../services/api";
 import PendingUsersList from "../components/PendingUsersList";
 import PendingUserApprovalModal from "../components/PendingUserApprovalModal";
@@ -22,6 +23,7 @@ export default function AdminPendingUsersPage() {
   } = usePendingUsers();
 
   const { addNotification } = useNotification();
+  const confirm = useConfirm();
 
   const [approvalModalOpen, setApprovalModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -89,7 +91,12 @@ export default function AdminPendingUsersPage() {
 
   // Handle reject
   const handleReject = async (user) => {
-    if (!window.confirm(`Reject registration for ${user.name}?`)) {
+    const confirmed = await confirm({
+      title: "Reject Registration",
+      message: `Reject registration for "${user.name}"?`,
+      confirmText: "Reject",
+    });
+    if (!confirmed) {
       return;
     }
 
