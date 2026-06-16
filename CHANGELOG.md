@@ -30,6 +30,87 @@
 
 ---
 
+## [2026-06-16 17:45 WITA] — Rebuild frontend lokal agar sinkron dengan production (commit terbaru `main`)
+
+**Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
+**Apa yang dirubah**:
+- Tidak ada perubahan source code — operasional saja: `git fetch origin` (konfirmasi `main`
+  lokal sudah sama dengan `origin/main` di commit `0c21438`), `cd frontend && npm ci`,
+  `npm run build` (regenerate `frontend/dist` dari source terbaru, pakai `.env.production`
+  yang sudah ada), lalu `docker compose build frontend && docker compose up -d frontend`.
+
+**Kenapa dirubah**:
+Tampilan frontend di laptop ini (server akses) terlihat beda versi dibanding yang seharusnya,
+karena `frontend/dist` yang di-copy oleh `frontend/Dockerfile` adalah hasil build lama
+(file terakhir bertanggal 15 Mei), bukan hasil build dari commit terbaru `main` (`#30`,
+`#29`, dst). Dockerfile frontend sengaja **tidak** build di dalam Docker (komentar di
+`Dockerfile`: "untuk menghindari OOM" di VPS kecil) — build harus dilakukan manual
+sebelum `docker compose up`.
+
+**Before**:
+- `frontend/dist` stale (build lama), container `antick-async-frontend` menyajikan UI versi
+  lama meski source code repo sudah terbaru.
+
+**After**:
+- `main` lokal terkonfirmasi up to date dengan `origin/main` (tidak perlu pull/merge).
+- `frontend/dist` di-regenerate, asset hash baru (`index-BtpQMLP4.js`, dll). Image
+  `notyourkisee/antick-async-frontend:latest` di-rebuild dan container direstart.
+  Diverifikasi: `GET /` 200, asset hash di HTML cocok dengan output build terbaru.
+
+**Alasan melakukan perubahan**:
+Mengikuti instruksi Dockerfile yang sudah ada (build-lokal-lalu-copy) tanpa mengubah
+arsitektur deployment. Tidak ada perubahan kode, hanya memastikan artifact build (`dist`)
+sinkron dengan commit terbaru — sesuai permintaan user untuk menyamakan tampilan lokal
+dan production.
+
+---
+
+## [2026-06-16 17:10 WITA] — Fix `.env` lokal: auth-service crash-loop karena SECRET_KEY kosong & CORS_ORIGINS format salah
+
+**Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
+**Apa yang dirubah**:
+- `.env` (root, tidak di-commit) — tambah `SECRET_KEY` (random 48-byte, di-generate via
+  `secrets.token_urlsafe`), `ENVIRONMENT`, `LOG_LEVEL`, `POSTGRES_PASSWORD` (default dev),
+  `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`; ubah `CORS_ORIGINS` dari format comma-separated
+  ke format JSON array (`["...","..."]`); hapus baris duplikat `SUPERADMIN_PASSWORD`.
+- `.env.example` (root) — perbaiki dokumentasi `CORS_ORIGINS`: ganti contoh dari
+  comma-separated ke JSON array + tambah komentar penjelasan, agar member lain tidak
+  mengalami crash-loop yang sama saat setup.
+
+**Kenapa dirubah**:
+`docker compose up -d --build` di laptop ini (yang berfungsi sebagai server akses production,
+terhubung ke Cloudflare Tunnel asli) gagal — `auth-service` crash-loop terus, gateway &
+cloudflared tidak pernah start karena dependency healthcheck.
+
+**Before**:
+- `.env` hanya berisi `TUNNEL_TOKEN` + `SUPERADMIN_EMAIL`/`SUPERADMIN_PASSWORD` (duplikat 2x).
+  `SECRET_KEY` kosong → `services/auth-service/config.py` (`Settings.validate_secret_key`)
+  fail-fast dengan `ValidationError`, container auth-service exit terus-menerus →
+  `item-service`, `gateway`, `cloudflared` tidak pernah naik (dependency chain).
+- Setelah `SECRET_KEY` ditambahkan, percobaan kedua gagal lagi: `CORS_ORIGINS` ditulis format
+  comma-separated (sesuai `.env.example`), tapi `pydantic-settings` mencoba JSON-decode field
+  bertipe `List[str]` **sebelum** custom `field_validator` jalan → `SettingsError` saat parsing
+  env source, bukan validation error biasa.
+
+**After**:
+- `docker compose up -d --build` sukses: 7/7 container `healthy`/`running` —
+  `auth-db→auth-service→item-db→item-service→gateway→cloudflared` naik penuh sesuai
+  healthcheck chain di CLAUDE.md §10. Diverifikasi: `GET /health` (gateway), `/auth/health`,
+  `/items/health` semua 200 `"status":"healthy"`; frontend `/` 200; `/items` tanpa token 401
+  (auth guard bekerja).
+
+**Alasan melakukan perubahan**:
+`.env` adalah file rahasia per-mesin (gitignored) sehingga tidak ada cara mengetahui isinya
+sebelum dicoba jalankan — perbaikan dilakukan reaktif berdasarkan error log container.
+`.env.example` di repo **menyesatkan** untuk format `CORS_ORIGINS` (comma-separated tidak
+valid untuk versi `pydantic-settings` yang dipakai project ini); perlu dipertimbangkan untuk
+diperbaiki di `.env.example` agar setup member lain tidak mengalami masalah yang sama.
+Catatan tambahan: ditemukan ingress Cloudflare Tunnel (dikelola di dashboard, bukan di repo)
+masih mengarah `api.antick-async.online → http://backend:8000` (nama service monolith lama),
+seharusnya `http://gateway:80` sesuai CLAUDE.md §11 — perlu diperbaiki di dashboard Cloudflare.
+
+---
+
 ## [2026-06-12 11:30 WITA] — Fix layout form "Tambah Item Baru" yang meluber di halaman /items
 
 **Author**: Muhammad Fikri Haikal Ariadma — dikerjakan via AI Agent (Claude)
