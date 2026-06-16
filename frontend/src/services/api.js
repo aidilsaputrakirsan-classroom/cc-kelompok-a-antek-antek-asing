@@ -248,6 +248,12 @@ export const adminApi = {
       body: { department_id: departmentId },
     });
   },
+  resetUserPassword(userId) {
+    return request(`/admin/users/${userId}/reset-password`, { method: "POST" });
+  },
+  deleteUser(userId) {
+    return request(`/admin/users/${userId}`, { method: "DELETE" });
+  },
   get(path) {
     return request(path);
   },

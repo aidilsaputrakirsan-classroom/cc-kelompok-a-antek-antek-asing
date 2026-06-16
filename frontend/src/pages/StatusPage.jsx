@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Lottie from 'lottie-react';
 import CardSpotlight from '../components/ui/CardSpotlight';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost';
@@ -6,8 +7,40 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost';
 const SERVICES = [
   { name: 'Auth Service', icon: '', healthUrl: `${API_URL}/auth/health`, metricsUrl: `${API_URL}/auth/metrics` },
   { name: 'Item Service', icon: '', healthUrl: `${API_URL}/items/health`, metricsUrl: `${API_URL}/items/metrics` },
-  { name: 'API Gateway', icon: '', healthUrl: `${API_URL}/health`, metricsUrl: null },
+  { name: 'API Gateway', icon: '', healthUrl: `${API_URL}/health`, metricsUrl: null, showMoodAnimation: true },
 ];
+
+const LOTTIE_HEALTHY_SRC = '/lottie/cat-love.json';
+const LOTTIE_UNHEALTHY_SRC = '/lottie/cat-crying.json';
+
+/* ── Mood animation reflecting service health (healthy vs not) ──────── */
+function ServiceMoodAnimation({ healthy }) {
+  const [animationData, setAnimationData] = useState(null);
+  const src = healthy ? LOTTIE_HEALTHY_SRC : LOTTIE_UNHEALTHY_SRC;
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(src)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setAnimationData(data);
+      })
+      .catch(() => {
+        if (!cancelled) setAnimationData(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [src]);
+
+  if (!animationData) return null;
+
+  return (
+    <div className="mx-auto -mb-2 mt-2 h-20 w-20">
+      <Lottie animationData={animationData} loop autoplay />
+    </div>
+  );
+}
 
 const REFRESH_INTERVAL = 10000; // 10 seconds
 
@@ -113,7 +146,7 @@ function ErrorRateChart({ services }) {
 }
 
 /* ── Individual service status card ────────────────────────────────── */
-function ServiceCard({ name, icon, healthUrl, metricsUrl, onData }) {
+function ServiceCard({ name, icon, healthUrl, metricsUrl, showMoodAnimation, onData }) {
   const [health, setHealth] = useState(null);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -182,6 +215,10 @@ function ServiceCard({ name, icon, healthUrl, metricsUrl, onData }) {
           {loading ? '...' : cfg.label}
         </span>
       </div>
+
+      {showMoodAnimation && !loading && (
+        <ServiceMoodAnimation healthy={status === 'healthy'} />
+      )}
 
       {metrics && (
         <div className="relative mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
@@ -290,6 +327,7 @@ export default function StatusPage() {
             icon={svc.icon}
             healthUrl={svc.healthUrl}
             metricsUrl={svc.metricsUrl}
+            showMoodAnimation={svc.showMoodAnimation}
             onData={handleServiceData}
           />
         ))}

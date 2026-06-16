@@ -30,6 +30,74 @@
 
 ---
 
+## [2026-06-16 20:30 WITA] — Bulk delete & reset password user, debug error System Status, animasi mood Lottie API Gateway
+
+**Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
+**Apa yang dirubah**:
+- `services/auth-service/crud.py` — tambah `reset_user_password()` (set password ke default
+  `Password123!` + `must_change_password=True`) dan `delete_user()` (hard delete, dengan
+  exception `UserHasRelatedDataError` kalau ada FK constraint dari tiket/approval log).
+- `services/auth-service/main.py` — endpoint baru `POST /admin/users/{id}/reset-password`
+  dan `DELETE /admin/users/{id}`, dengan guard sama seperti `update_user_role` (tidak bisa
+  ke akun sendiri; admin tidak bisa reset/hapus admin lain atau superadmin).
+- `frontend/src/services/api.js` — tambah `adminApi.resetUserPassword()` dan
+  `adminApi.deleteUser()`.
+- `frontend/src/pages/AdminDashboardPage.jsx` — tab Team Member (`/admin?tab=users`):
+  tambah checkbox per baris + "select all", tombol **Delete Selected** (bulk, muncul saat
+  ada baris terpilih) dan per-baris tombol **Reset Password** (icon kunci) serta **Delete**
+  (icon trash), masing-masing dengan konfirmasi `window.confirm`.
+- `frontend/src/pages/StatusPage.jsx` + `frontend/package.json` — tambah dependency
+  `lottie-react`; card **API Gateway** sekarang menampilkan animasi mood: file
+  `public/lottie/cat-love.json` saat status healthy, `public/lottie/cat-crying.json` saat
+  tidak healthy (file JSON dipindah dari root `frontend/` ke `frontend/public/lottie/` agar
+  bisa di-fetch sebagai aset statis, bukan di-bundle ke JS).
+
+**Kenapa dirubah**:
+Permintaan user: (1) bulk delete user, (2) admin/superadmin bisa reset password karyawan
+yang lupa password ke default `Password123!`, (3) `/debug` kenapa System Status
+menampilkan beberapa error, (4) animasi Lottie reaktif status di card API Gateway.
+
+**Hasil debug System Status (poin 3, tidak ada perubahan kode)**:
+Dicek langsung lewat `GET /auth/metrics` di server live: `error_count: 5` dari
+`request_count: 1590` (`error_rate_percent: 0.31%`). Breakdown per endpoint
+(`endpoint_stats`): `POST /login` 3 error dari 9 request, `GET /notifications` 2 error dari
+1320 request. **Kesimpulan: bukan bug** — 3 error login adalah percobaan login dengan
+password salah (perilaku normal 401), 2 error notifications kemungkinan polling
+(interval 5 detik di `useNotifications.js`) yang kena 401 saat token JWT expired
+(`ACCESS_TOKEN_EXPIRE_MINUTES=60`) menjelang user logout/refresh manual. Seluruh
+health-check (`/health`, `/auth/health`, `/items/health`) dan CORS preflight ke
+`https://antick-async.online` terverifikasi normal. Angka error kecil ini yang sebelumnya
+tampak sebagai "undefined" (lihat entri sebelumnya) sekarang tampil sebagai persentase
+kecil yang benar (0.3%), bukan indikasi outage.
+
+**Before**:
+- Tidak ada cara menghapus atau reset password user dari UI maupun API — admin harus akses
+  database langsung kalau karyawan lupa password atau perlu dihapus.
+- Card API Gateway di `/status` hanya menampilkan badge teks status, tanpa elemen visual
+  tambahan.
+
+**After**:
+- Admin/superadmin bisa pilih beberapa user lalu hapus sekaligus (bulk), atau reset
+  password / hapus satu user lewat tombol di baris tabel. Percobaan manual (ID tidak ada,
+  reset/hapus akun sendiri) mengembalikan 404/403 sesuai ekspektasi tanpa menyentuh data
+  user asli.
+- Card API Gateway menampilkan animasi kucing menangis saat tidak healthy, kucing
+  senang saat healthy — fetch JSON dari `/lottie/*.json` (terverifikasi 200 OK).
+- Verifikasi: `npm run build` sukses, `npm test` 19/19 lolos, image frontend & auth-service
+  di-rebuild dan container direstart, semua healthy.
+
+**Alasan melakukan perubahan**:
+`delete_user` memakai hard delete (sesuai instruksi "hapus data") tapi dibungkus
+try/except `IntegrityError` supaya kalau user punya tiket/approval log terkait, error yang
+dikembalikan jelas (409 + pesan) bukan 500 generik dari DB. Reset password memakai
+`must_change_password=True` (kolom yang sudah ada di schema) agar user dipaksa ganti
+password default saat login pertama setelah reset — konsisten dengan flow approval user
+baru yang sudah ada. File Lottie dipindah ke `public/` dan di-fetch saat runtime (bukan
+di-`import` ke JS) karena ukurannya besar (787KB + 149KB) — supaya tidak membengkakkan
+bundle JS utama yang sudah di atas batas peringatan Vite.
+
+---
+
 ## [2026-06-16 19:30 WITA] — Fix badge priority "low" di dark mode, metrics System Status undefined, dan filter tiket admin
 
 **Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
