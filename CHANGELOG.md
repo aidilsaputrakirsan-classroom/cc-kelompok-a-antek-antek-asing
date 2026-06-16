@@ -30,6 +30,38 @@
 
 ---
 
+## [2026-06-16 23:30 WITA] — Perbesar lagi animasi mood API Gateway di System Status
+
+**Author**: Muhammad Fikri Haikal Ariadma (Lead DevOps) — dikerjakan via AI Agent (Claude)
+**Apa yang dirubah**:
+- `frontend/src/pages/StatusPage.jsx` — ukuran kontainer animasi Lottie di card API
+  Gateway diperbesar dari `h-40 w-40` (160px) jadi `h-[176px] w-[176px]` (176px),
+  posisi diubah dari `inset-x-0 top-12` jadi `inset-x-10 top-0`.
+
+**Kenapa dirubah**:
+Permintaan user: kucingnya masih kurang besar, minta diperbesar lagi.
+
+**Before**:
+- Permintaan awal menulis class `h-42 w-42` — **bukan kelas Tailwind yang valid**
+  (default spacing scale Tailwind cuma punya `40` dan `44`, tidak ada `42`, dan
+  `tailwind.config.js` project ini tidak extend scale tersebut). Kalau dipakai
+  langsung, class itu tidak menghasilkan CSS apa pun → kontainer Lottie jadi tanpa
+  ukuran (kemungkinan animasi hilang/collapse, bukan membesar).
+
+**After**:
+- Diganti ke arbitrary value `h-[176px] w-[176px]` (variasi numerik dari `h-44/w-44`
+  bawaan Tailwind, ~10% lebih besar dari ukuran sebelumnya 160px) supaya benar-benar
+  menghasilkan CSS yang valid dan animasinya terlihat lebih besar sesuai maksud.
+- Verifikasi: `npm run build` sukses, image frontend di-rebuild & container direstart,
+  asset hash baru (`index-BV_0EPB_.js`) terkonfirmasi ter-serve.
+
+**Alasan melakukan perubahan**:
+Tetap mengikuti posisi (`inset-x-10 top-0`) dan ukuran yang dimaksud user, hanya
+mengganti nilai numerik yang tidak valid dengan nilai arbitrary-value Tailwind yang
+benar-benar ter-compile, agar perubahan terlihat dan tidak diam-diam tidak berefek.
+
+---
+
 ## [2026-06-16 22:00 WITA] — Rewrite menyeluruh README.md: tech stack di awal, quick start clone-to-run, env vars akurat
 
 **Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
