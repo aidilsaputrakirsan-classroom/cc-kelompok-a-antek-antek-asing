@@ -30,6 +30,66 @@
 
 ---
 
+## [2026-06-16 18:40 WITA] — Fix 5 bug/permintaan halaman admin (role edit, pending-users, status menu, tickets toolbar)
+
+**Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
+**Apa yang dirubah**:
+- `frontend/src/pages/AdminDashboardPage.jsx`:
+  - Fix dropdown role di tab `users` (`/admin?tab=users`) yang `value`-nya ter-bind ke
+    `item.role` (data asli) bukan state lokal `departmentEditMode.role`, sehingga teks
+    placeholder dropdown tidak berubah sampai diklik Save.
+  - Hapus `"superadmin"` dari `roleOptions` — admin tidak lagi bisa memilih role superadmin
+    lewat dropdown ini.
+  - Tambah button **Reset Filter** dan **Refresh** di toolbar tab `tickets`.
+- `frontend/src/pages/AdminPendingUsersPage.jsx` — setelah approve user pending, otomatis
+  panggil `adminApi.updateUserRole`: departemen **IT** → role `it_employee`, departemen
+  lain → role `employee`.
+- `frontend/src/layouts/AppShell.jsx` — hapus item sidebar "System Status" dari menu
+  `it_employee` dan `employee` (hanya tersisa di menu `admin`/`superadmin`).
+- `frontend/src/App.jsx` — bungkus route `/status` dengan
+  `<ProtectedRoute allowedRoles={["superadmin","admin"]} />` agar akses langsung via URL
+  juga diblokir untuk role lain (sebelumnya hanya disembunyikan dari sidebar, tetap bisa
+  diakses kalau tahu URL-nya).
+
+**Kenapa dirubah**:
+Permintaan user (Lead DevOps) berdasarkan pengamatan langsung di
+https://antick-async.online — 5 poin: (1) bug placeholder role di edit user,
+(2) hilangkan opsi superadmin di dropdown role, (3) auto-assign role saat approve user
+pending berdasarkan departemen, (4) batasi akses menu System Status, (5) tambah tombol
+refresh & reset filter di tab tickets.
+
+**Before**:
+- Dropdown role di tab users menampilkan role lama walau sudah diganti, sampai user klik
+  tombol Save (centang) — root cause: `value={item.role}` bukan state draft.
+- `roleOptions` memuat `superadmin`, admin bisa (tidak sengaja) menaikkan user lain ke
+  superadmin dari UI ini.
+- Approve user pending hanya set `department_id`, role user tidak berubah dari default
+  (`employee`) walau ditempatkan ke departemen IT.
+- Menu "System Status" tampil di sidebar semua role, dan `/status` bisa diakses oleh
+  role apa pun selama login (tidak ada `allowedRoles` guard).
+- Tab tickets admin tidak punya tombol refresh manual maupun reset filter cepat.
+
+**After**:
+- Dropdown role di mode edit langsung menampilkan pilihan yang baru dipilih sebelum Save.
+- `roleOptions` = `["employee", "it_employee", "admin"]` saja.
+- Approve user dengan departemen "IT" otomatis set role `it_employee`; departemen lain
+  otomatis `employee`.
+- Sidebar "System Status" hanya muncul untuk admin/superadmin; akses langsung ke `/status`
+  oleh role lain di-redirect (employee → `/employee`, it_employee → `/admin`).
+- Tab tickets admin punya tombol "Reset Filter" (clear semua filter) dan "Refresh"
+  (re-fetch `loadData()`).
+- Verifikasi: `npm run build` sukses, `npm test` 19/19 lolos, image frontend di-rebuild
+  dan container direstart (asset hash baru `index-CFNdSfs7.js`), `GET /` 200.
+
+**Alasan melakukan perubahan**:
+Semua perbaikan dilakukan minimal di titik akar masalah (binding state, filter array,
+guard route) tanpa mengubah struktur komponen secara luas. Auto-assign role di approval
+diimplementasikan di frontend (memanfaatkan endpoint `PUT /users/{id}/role` yang sudah
+ada) tanpa mengubah skema/endpoint backend approval, supaya scope perubahan tetap kecil
+dan backward-compatible dengan flow approval yang sudah berjalan.
+
+---
+
 ## [2026-06-16 18:05 WITA] — Pull `main` (merge PR #31 dari `bagas-frontend`) & rebuild frontend + auth-service
 
 **Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
