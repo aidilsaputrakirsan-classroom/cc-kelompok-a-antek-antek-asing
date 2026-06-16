@@ -30,6 +30,75 @@
 
 ---
 
+## [2026-06-16 19:30 WITA] — Fix badge priority "low" di dark mode, metrics System Status undefined, dan filter tiket admin
+
+**Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma
+**Apa yang dirubah**:
+- `frontend/src/components/StatusBadge.jsx` — ganti warna badge priority `low` dari
+  `bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300` (kontras sangat rendah
+  di dark mode, terlihat seperti transparan) menjadi `bg-teal-100 dark:bg-teal-900/30
+  text-teal-800 dark:text-teal-400` — pola warna konsisten dengan badge status/priority lain.
+- `services/shared/metrics.py` (+ disinkronkan ke `services/auth-service/shared/metrics.py`
+  dan `services/item-service/shared/metrics.py`) — `MetricsCollector` sekarang menghitung dan
+  mengembalikan `error_rate_percent`, `uptime_seconds` (sejak proses start), dan
+  `latencies_ms.avg` — field yang sebelumnya tidak ada sama sekali di response `/metrics`.
+- `frontend/src/pages/StatusPage.jsx` — perbaiki mapping field metrics yang sebelumnya
+  salah total (field frontend `total_requests`/`total_errors`/`latency.avg_ms`/dst tidak
+  pernah ada di response backend yang sebenarnya `request_count`/`error_count`/
+  `latencies_ms.avg`/dst) → root cause "Error Rate: undefined%" dan metric lain kosong.
+  Tambah `formatUptime()` agar uptime ditampilkan "Xh Ym" bukan cuma menit kasar.
+- `frontend/src/pages/AdminDashboardPage.jsx` — tab Tickets: pisahkan state filter draft
+  (`filterDraft`, diisi user) dari filter yang benar-benar diterapkan (`appliedFilters`,
+  dipakai `filteredTickets`); tambah tombol **Apply Filter** yang menyalin draft →
+  applied; tombol **Reset Filter** sekarang reset keduanya; urutan kolom filter ditukar
+  jadi **Priority lalu Status** (sebelumnya Status lalu Priority).
+
+**Kenapa dirubah**:
+Permintaan user berdasarkan pengamatan langsung di https://antick-async.online: (1) badge
+priority "low" nyaris tidak terlihat di dark mode, (2) halaman `/status` menampilkan
+"Error Rate: undefined%" dan metric latency/uptime kosong padahal diharapkan data realtime,
+(3) filter tiket admin langsung jalan tiap ketik/pilih opsi, ingin ada tombol Apply, dan
+urutan kolom Priority/Status ditukar.
+
+**Before**:
+- Badge `low` pakai `slate` netral dengan opacity tipis di dark mode → blend dengan
+  background card, sulit dibaca.
+- Backend `/metrics` hanya pernah mengembalikan `request_count`, `error_count`,
+  `latencies_ms: {p50,p95,p99,samples}`, `endpoint_stats` — **tidak pernah** ada
+  `error_rate_percent`, `uptime_seconds`, atau `latencies_ms.avg`. Frontend StatusPage.jsx
+  membaca nama field yang sama sekali berbeda (`total_requests`, `total_errors`,
+  `latency.avg_ms`, dst) → semua bernilai `undefined`, tampil sebagai teks "undefined%"/
+  "undefinedms"/"NaN min".
+- Filter tiket admin (`search`/`status`/`priority`/`assignee`) langsung memfilter tabel
+  tiap kali state berubah — tidak ada tombol apply, urutan kolom Status dulu baru Priority.
+
+**After**:
+- Badge `low` terlihat jelas di light maupun dark mode (warna teal, pola sama seperti badge
+  lain).
+- `GET /auth/metrics` dan `GET /items/metrics` sekarang benar-benar mengembalikan
+  `error_rate_percent`, `uptime_seconds`, dan `latencies_ms.avg` terhitung real-time dari
+  data request yang sudah masuk. Diverifikasi manual: `auth-service` mengembalikan
+  `error_rate_percent: 0.0`, `uptime_seconds: 19.96`, `latencies_ms.avg: 15.82` (bukan lagi
+  `undefined`).
+- Halaman `/status` menampilkan Error Rate/Avg Latency/p95 Latency/Uptime dengan nilai asli
+  dari backend, refresh otomatis tiap 10 detik tetap berjalan.
+- Tab Tickets admin: input filter tidak langsung memfilter — user mengisi lalu klik
+  **Apply Filter** untuk menjalankannya; **Reset Filter** mengembalikan draft & hasil filter
+  ke kosong; kolom filter tampil **Priority** lebih dulu, baru **Status**.
+- Verifikasi: `npm run build` sukses, `npm test` 19/19 lolos, image frontend +
+  auth-service + item-service di-rebuild dan container direstart, semua healthy.
+
+**Alasan melakukan perubahan**:
+`metrics.py` diduplikasi di 3 lokasi sesuai catatan §4 CLAUDE.md — ketiganya disinkronkan
+ulang agar tidak ada drift. Perhitungan `error_rate_percent`/`uptime_seconds`/`avg` dipilih
+ringan (in-memory, tanpa dependensi baru) konsisten dengan pendekatan `MetricsCollector`
+yang sudah ada, bukan mengganti ke sistem metrics eksternal. Filter draft/applied
+dipisah dengan state baru daripada menambah flag tunggal, agar Reset Filter tetap bisa
+mengosongkan kedua sisi secara eksplisit tanpa efek samping ke komponen lain yang sudah
+memakai pola `filters`.
+
+---
+
 ## [2026-06-16 18:40 WITA] — Fix 5 bug/permintaan halaman admin (role edit, pending-users, status menu, tickets toolbar)
 
 **Author**: AI Agent (Claude) atas permintaan Muhammad Fikri Haikal Ariadma

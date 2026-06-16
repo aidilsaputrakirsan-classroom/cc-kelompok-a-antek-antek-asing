@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Pencil, Plus, RefreshCw, RotateCcw, Trash2, User, Eye, Ticket, Users } from "lucide-react";
+import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Filter, Pencil, Plus, RefreshCw, RotateCcw, Trash2, User, Eye, Ticket, Users } from "lucide-react";
 import { adminApi, categoryApi, ticketApi } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/useToast";
@@ -184,7 +184,9 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(queryTab) ? queryTab : "overview"
   );
-  const [filters, setFilters] = useState({ search: "", status: "", priority: "", assignee: "" });
+  const emptyFilters = { search: "", status: "", priority: "", assignee: "" };
+  const [filterDraft, setFilterDraft] = useState(emptyFilters);
+  const [appliedFilters, setAppliedFilters] = useState(emptyFilters);
   const [categoryForm, setCategoryForm] = useState({ name: "", description: "" });
   const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -530,12 +532,12 @@ export default function AdminDashboardPage() {
       String(ticket.id).includes(queryFilter);
 
     const matchSearch =
-      !filters.search ||
-      ticket.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-      ticket.description.toLowerCase().includes(filters.search.toLowerCase());
-    const matchStatus = !filters.status || ticket.status === filters.status;
-    const matchPriority = !filters.priority || ticket.priority === filters.priority;
-    const matchAssignee = !filters.assignee || String(ticket.assignee_id || "") === filters.assignee;
+      !appliedFilters.search ||
+      ticket.title.toLowerCase().includes(appliedFilters.search.toLowerCase()) ||
+      ticket.description.toLowerCase().includes(appliedFilters.search.toLowerCase());
+    const matchStatus = !appliedFilters.status || ticket.status === appliedFilters.status;
+    const matchPriority = !appliedFilters.priority || ticket.priority === appliedFilters.priority;
+    const matchAssignee = !appliedFilters.assignee || String(ticket.assignee_id || "") === appliedFilters.assignee;
     return tabQueryMatch && matchSearch && matchStatus && matchPriority && matchAssignee;
   });
 
@@ -573,7 +575,10 @@ export default function AdminDashboardPage() {
         {activeTab === "tickets" && (
           <div className="flex items-center gap-2">
             <Button
-              onClick={() => setFilters({ search: "", status: "", priority: "", assignee: "" })}
+              onClick={() => {
+                setFilterDraft(emptyFilters);
+                setAppliedFilters(emptyFilters);
+              }}
               variant="secondary"
               className="inline-flex items-center gap-2 rounded-xl"
             >
@@ -687,27 +692,14 @@ export default function AdminDashboardPage() {
             <Input
               label="Search"
               placeholder="title/description"
-              value={filters.search}
-              onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value }))}
+              value={filterDraft.search}
+              onChange={(e) => setFilterDraft((prev) => ({ ...prev, search: e.target.value }))}
             />
-            <label className="text-sm text-slate-700 dark:text-slate-300">
-              Status
-              <ThemedSelect
-                value={filters.status}
-                onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-                className="mt-1"
-              >
-                <option value="">All</option>
-                {statusOptions.map((status) => (
-                  <option key={status} value={status}>{status}</option>
-                ))}
-              </ThemedSelect>
-            </label>
             <label className="text-sm text-slate-700 dark:text-slate-300">
               Priority
               <ThemedSelect
-                value={filters.priority}
-                onChange={(e) => setFilters((prev) => ({ ...prev, priority: e.target.value }))}
+                value={filterDraft.priority}
+                onChange={(e) => setFilterDraft((prev) => ({ ...prev, priority: e.target.value }))}
                 className="mt-1"
               >
                 <option value="">All</option>
@@ -717,10 +709,23 @@ export default function AdminDashboardPage() {
               </ThemedSelect>
             </label>
             <label className="text-sm text-slate-700 dark:text-slate-300">
+              Status
+              <ThemedSelect
+                value={filterDraft.status}
+                onChange={(e) => setFilterDraft((prev) => ({ ...prev, status: e.target.value }))}
+                className="mt-1"
+              >
+                <option value="">All</option>
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </ThemedSelect>
+            </label>
+            <label className="text-sm text-slate-700 dark:text-slate-300">
               Assignee
               <ThemedSelect
-                value={filters.assignee}
-                onChange={(e) => setFilters((prev) => ({ ...prev, assignee: e.target.value }))}
+                value={filterDraft.assignee}
+                onChange={(e) => setFilterDraft((prev) => ({ ...prev, assignee: e.target.value }))}
                 className="mt-1"
               >
                 <option value="">All</option>
@@ -729,6 +734,16 @@ export default function AdminDashboardPage() {
                 ))}
               </ThemedSelect>
             </label>
+          </div>
+
+          <div className="mb-4 flex justify-end">
+            <Button
+              onClick={() => setAppliedFilters(filterDraft)}
+              className="inline-flex items-center gap-2 rounded-xl"
+            >
+              <Filter size={16} aria-hidden="true" />
+              Apply Filter
+            </Button>
           </div>
 
           {filteredTickets.length === 0 ? (
