@@ -5,6 +5,7 @@ import { NotificationProvider } from "./context/NotificationContext";
 import { PendingUsersProvider } from "./context/PendingUsersContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ToastProvider, useToast } from "./context/useToast";
+import { ConfirmProvider } from "./context/ConfirmContext";
 import ToastContainer from "./components/ToastContainer";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -98,7 +99,9 @@ export default function App() {
           <NotificationProvider>
             <PendingUsersProvider>
               <ToastProvider>
-                <AppWithToast />
+                <ConfirmProvider>
+                  <AppWithToast />
+                </ConfirmProvider>
               </ToastProvider>
             </PendingUsersProvider>
           </NotificationProvider>

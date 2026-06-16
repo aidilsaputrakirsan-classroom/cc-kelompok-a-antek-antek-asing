@@ -31,7 +31,11 @@ class MetricsCollector:
     def record_request(self, path: str, method: str, status_code: int, duration_ms: float) -> None:
         with self._lock:
             self.request_count += 1
-            is_error = status_code >= 400
+            # Only count server-side (5xx) failures as "errors" for health metrics.
+            # 4xx (wrong password, validation, not-found, etc.) are expected client
+            # traffic, not system failures, so they shouldn't show up as errors on
+            # the System Status page.
+            is_error = status_code >= 500
             if is_error:
                 self.error_count += 1
 
