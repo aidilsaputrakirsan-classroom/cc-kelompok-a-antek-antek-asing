@@ -17,7 +17,7 @@ const styles = {
   in_progress: "bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400",
   resolved: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-400",
   closed: "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300",
-  low: "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+  low: "bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-400",
   medium: "bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-400",
   high: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400",
   urgent: "bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-400",

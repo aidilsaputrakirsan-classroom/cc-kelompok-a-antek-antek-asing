@@ -146,7 +146,7 @@ function ServiceCard({ name, icon, healthUrl, metricsUrl, onData }) {
       onData({
         name,
         icon,
-        errorRate: metrics?.error_rate_percent ?? null,
+        errorRate: metrics?.error_rate_percent ?? 0,
       });
     }
   }, [metrics, name, icon]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -159,7 +159,7 @@ function ServiceCard({ name, icon, healthUrl, metricsUrl, onData }) {
   /* Expose fetchStatus so parent can call it */
   useEffect(() => {
     if (onData) {
-      onData({ name, icon, errorRate: metrics?.error_rate_percent ?? null, refetch: fetchStatus });
+      onData({ name, icon, errorRate: metrics?.error_rate_percent ?? 0, refetch: fetchStatus });
     }
   }, [fetchStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -185,16 +185,24 @@ function ServiceCard({ name, icon, healthUrl, metricsUrl, onData }) {
 
       {metrics && (
         <div className="relative mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
-          <Metric label="Requests" value={metrics.total_requests} />
-          <Metric label="Errors" value={metrics.total_errors} alert={metrics.total_errors > 0} />
-          <Metric label="Error Rate" value={`${metrics.error_rate_percent}%`} alert={metrics.error_rate_percent > 0} />
-          <Metric label="Avg Latency" value={`${metrics.latency?.avg_ms || 0}ms`} />
-          <Metric label="p95 Latency" value={`${metrics.latency?.p95_ms || 0}ms`} />
-          <Metric label="Uptime" value={`${Math.round((metrics.uptime_seconds || 0) / 60)} min`} />
+          <Metric label="Requests" value={metrics.request_count ?? 0} />
+          <Metric label="Errors" value={metrics.error_count ?? 0} alert={(metrics.error_count ?? 0) > 0} />
+          <Metric label="Error Rate" value={`${(metrics.error_rate_percent ?? 0).toFixed(1)}%`} alert={(metrics.error_rate_percent ?? 0) > 0} />
+          <Metric label="Avg Latency" value={`${metrics.latencies_ms?.avg ?? 0}ms`} />
+          <Metric label="p95 Latency" value={`${metrics.latencies_ms?.p95 ?? 0}ms`} />
+          <Metric label="Uptime" value={formatUptime(metrics.uptime_seconds ?? 0)} />
         </div>
       )}
     </CardSpotlight>
   );
+}
+
+function formatUptime(seconds) {
+  const total = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes} min`;
 }
 
 function Metric({ label, value, alert }) {

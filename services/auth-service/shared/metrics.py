@@ -20,6 +20,7 @@ class MetricsCollector:
             return cls._instance
 
     def _init_metrics(self) -> None:
+        self.start_time: float = time.time()
         self.request_count: int = 0
         self.error_count: int = 0
         self.latencies: List[float] = []
@@ -75,14 +76,28 @@ class MetricsCollector:
         with self._lock:
             sorted_latencies = sorted(self.latencies) if self.latencies else [0]
             n = len(sorted_latencies)
+            avg = sum(sorted_latencies) / n if n > 0 else 0
             p50 = sorted_latencies[int(n * 0.5)] if n > 0 else 0
             p95 = sorted_latencies[int(n * 0.95)] if n > 0 else 0
             p99 = sorted_latencies[int(n * 0.99)] if n > 0 else 0
+            error_rate_percent = (
+                round((self.error_count / self.request_count) * 100, 2)
+                if self.request_count > 0
+                else 0
+            )
 
             return {
                 "request_count": self.request_count,
                 "error_count": self.error_count,
-                "latencies_ms": {"p50": round(p50, 2), "p95": round(p95, 2), "p99": round(p99, 2), "samples": n},
+                "error_rate_percent": error_rate_percent,
+                "uptime_seconds": round(time.time() - self.start_time, 2),
+                "latencies_ms": {
+                    "avg": round(avg, 2),
+                    "p50": round(p50, 2),
+                    "p95": round(p95, 2),
+                    "p99": round(p99, 2),
+                    "samples": n,
+                },
                 "endpoint_stats": self.endpoint_stats
             }
 
