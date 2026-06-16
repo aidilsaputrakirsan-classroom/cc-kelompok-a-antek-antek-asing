@@ -3,8 +3,10 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Ticket, Clock3, CheckCheck, FolderCheck } from "lucide-react";
 import { categoryApi, ticketApi } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../context/useToast";
 import { AnimatedMetricValue } from "../components/AnimatedMetricValue";
 import Card from "../components/ui/Card";
+import CardSpotlight from "../components/ui/CardSpotlight";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 import StatusBadge from "../components/StatusBadge";
@@ -56,6 +58,7 @@ function buildSeries(tickets) {
 
 export default function EmployeeDashboardPage() {
   const { user } = useAuth();
+  const toast = useToast();
   const [searchParams] = useSearchParams();
   const queryFilter = (searchParams.get("q") || "").trim().toLowerCase();
   const requestedTab = (searchParams.get("tab") || "overview").toLowerCase();
@@ -97,12 +100,29 @@ export default function EmployeeDashboardPage() {
         category_id: Number(form.category_id),
       });
       setForm({ title: "", description: "", priority: "low", category_id: "" });
+      toast.success("Tiket berhasil dibuat!");
       setMessage("Tiket berhasil dibuat.");
       await loadData();
     } catch (err) {
+      toast.error(err.message || "Gagal membuat tiket.");
       setMessage(err.message || "Gagal membuat tiket.");
     }
   };
+
+  const responseTimeVal = useMemo(() => {
+    const resolvedOrClosed = tickets.filter(
+      (t) => (t.status === "resolved" || t.status === "closed") && t.updated_at && t.created_at
+    );
+    if (resolvedOrClosed.length === 0) return "N/A";
+    
+    let totalHours = 0;
+    resolvedOrClosed.forEach((t) => {
+      const diff = new Date(t.updated_at).getTime() - new Date(t.created_at).getTime();
+      totalHours += diff / (1000 * 60 * 60);
+    });
+    const avg = totalHours / resolvedOrClosed.length;
+    return `${avg.toFixed(1)}h`;
+  }, [tickets]);
 
   const summary = useMemo(() => {
     const total = tickets.length;
@@ -113,12 +133,10 @@ export default function EmployeeDashboardPage() {
     return [
       { label: "My Tickets", value: total, icon: Ticket },
       { label: "In Progress", value: inProgress, icon: FolderCheck },
-      { label: "Response Time", value: "2.4h", icon: Clock3 },
+      { label: "Response Time", value: responseTimeVal, icon: Clock3 },
       { label: "Resolved", value: resolvedRate, icon: CheckCheck },
     ];
-  }, [tickets]);
-
-  const chartSeries = useMemo(() => buildSeries(tickets), [tickets]);
+  }, [tickets, responseTimeVal]);
 
   const categoryValues = useMemo(() => {
     const palette = ["#2563eb", "#38bdf8", "#a78bfa", "#f59e0b", "#10b981", "#0ea5e9"];
@@ -164,7 +182,7 @@ export default function EmployeeDashboardPage() {
     <div className="space-y-5">
       <section className="rounded-2xl">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-          {activeTab === "my-ticket" ? "My Ticket" : `Welcome ${user?.name || "Employee"}`}
+          {activeTab === "my-ticket" ? "My Ticket" : `Hi, ${user?.name || "Employee"}`}
         </h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           {activeTab === "my-ticket"
@@ -183,14 +201,7 @@ export default function EmployeeDashboardPage() {
 
       {activeTab === "overview" ? (
         <div className="grid gap-4 xl:grid-cols-[1.8fr_1fr]">
-          <ActivityLineChart
-            labels={chartSeries.labels}
-            lines={[
-              { label: "Total", color: "#2563eb", values: chartSeries.totalSeries },
-              { label: "Resolved", color: "#10b981", values: chartSeries.resolvedSeries },
-              { label: "Open", color: "#f59e0b", values: chartSeries.openSeries },
-            ]}
-          />
+          <ActivityLineChart tickets={tickets} />
           <CategoryDonutChart values={categoryValues} />
         </div>
       ) : (
@@ -312,7 +323,7 @@ export default function EmployeeDashboardPage() {
 
 function MetricCard({ label, value, icon: IconComponent }) {
   return (
-    <article className="group rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:shadow-lg hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 hover:-translate-y-1">
+    <CardSpotlight className="group rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm dark:shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)] transition-all duration-300 ease-out hover:shadow-lg hover:shadow-blue-500/10 dark:hover:shadow-blue-500/20 hover:-translate-y-1">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
@@ -326,6 +337,6 @@ function MetricCard({ label, value, icon: IconComponent }) {
           </div>
         )}
       </div>
-    </article>
+    </CardSpotlight>
   );
 }

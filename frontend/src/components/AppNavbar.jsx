@@ -37,9 +37,9 @@ export default function AppNavbar() {
           <NavItem to="/" active={location.pathname === "/"}>
             Home
           </NavItem>
-          <NavItem to="/items" active={location.pathname === "/items"}>
+          {/* <NavItem to="/items" active={location.pathname === "/items"}>
             Inventory Items
-          </NavItem>
+          </NavItem> */}
           {!isAdminLike && (
             <NavItem to="/employee" active={location.pathname.startsWith("/employee")}>
               Employee

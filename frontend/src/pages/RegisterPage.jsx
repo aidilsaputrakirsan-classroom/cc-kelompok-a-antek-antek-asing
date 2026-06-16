@@ -62,8 +62,8 @@ export default function RegisterPage() {
         <aside className="relative flex min-h-[260px] flex-col justify-between overflow-hidden bg-[linear-gradient(180deg,#2592ea_0%,#4aa6f2_52%,#61b1f5_100%)] px-0 pt-0 pb-0 text-white md:min-h-[600px] md:rounded-r-[36px] md:pb-0">
           <div className="pointer-events-none absolute -right-8 top-20 h-36 w-36 rounded-full" />
 
-          <div className="relative flex flex-col items-center gap-3 px-6 pt-6 md:px-8 md:pt-8">
-            <img src="/image/AA_HD.png" alt="Logo Antick Async" className="h-24" />
+          <div className="relative flex flex-col items-center gap-3 px-4 pt-4 md:px-6 md:pt-6">
+            <img src="/image/logofix.svg" alt="Logo Antick Async" className="h-24" />
             <p className="mt-3 text-lg text-blue-50/95">"Support That Works on Your Time"</p>
           </div>
 
@@ -159,18 +159,18 @@ export default function RegisterPage() {
             </label>
 
             {error && (
-              <Alert 
-                message={error} 
-                type="error" 
+              <Alert
+                message={error}
+                type="error"
                 onClose={() => setError("")}
                 autoClose={true}
                 duration={4000}
               />
             )}
             {success && (
-              <Alert 
-                message={success} 
-                type="success" 
+              <Alert
+                message={success}
+                type="success"
                 onClose={() => setSuccess("")}
                 autoClose={true}
                 duration={3000}
@@ -180,7 +180,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-[#2592ea] py-3 text-lg hover:bg-blue-500"
+              className="w-full rounded-xl py-3 text-lg"
             >
               {loading ? "Processing..." : "Get Started"}
             </Button>

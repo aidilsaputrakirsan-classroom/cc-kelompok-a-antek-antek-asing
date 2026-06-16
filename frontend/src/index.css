@@ -2,8 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaThin.ttf') format('truetype'); font-weight: 100; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaThinItalic.ttf') format('truetype'); font-weight: 100; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaExtraLight.ttf') format('truetype'); font-weight: 200; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaExtraLightItalic.ttf') format('truetype'); font-weight: 200; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaLight.ttf') format('truetype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaLightItalic.ttf') format('truetype'); font-weight: 300; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaRegular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaItalic.ttf') format('truetype'); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaMedium.ttf') format('truetype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaMediumItalic.ttf') format('truetype'); font-weight: 500; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaSemiBold.ttf') format('truetype'); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaSemiBoldItalic.ttf') format('truetype'); font-weight: 600; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaBold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaBoldItalic.ttf') format('truetype'); font-weight: 700; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaExtraBold.ttf') format('truetype'); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaExtraBoldItalic.ttf') format('truetype'); font-weight: 800; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaBlack.ttf') format('truetype'); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Lufga'; src: url('/fonts/LufgaBlackItalic.ttf') format('truetype'); font-weight: 900; font-style: italic; font-display: swap; }
+
 :root {
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: "Lufga", "IBM Plex Sans", "Segoe UI", sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
