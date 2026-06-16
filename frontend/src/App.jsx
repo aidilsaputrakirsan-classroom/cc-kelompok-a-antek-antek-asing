@@ -4,7 +4,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { PendingUsersProvider } from "./context/PendingUsersContext";
 import { ThemeProvider } from "./context/ThemeContext";
-import { useToast } from "./context/useToast";
+import { ToastProvider, useToast } from "./context/useToast";
 import ToastContainer from "./components/ToastContainer";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -93,7 +93,9 @@ export default function App() {
         <AuthProvider>
           <NotificationProvider>
             <PendingUsersProvider>
-              <AppWithToast />
+              <ToastProvider>
+                <AppWithToast />
+              </ToastProvider>
             </PendingUsersProvider>
           </NotificationProvider>
         </AuthProvider>

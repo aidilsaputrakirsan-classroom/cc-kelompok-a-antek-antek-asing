@@ -1,27 +1,37 @@
-import { useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback } from "react";
 
-/**
- * Hook untuk toast notifications (in-app alerts)
- * Independen dari NotificationContext, ini untuk real-time feedback
- */
-export function useToast() {
+export const ToastContext = createContext(null);
+
+export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback((message, type = "info", duration = 3000) => {
+  const addToast = useCallback((messageOrObj, type = "info", duration = 3000) => {
     const id = Date.now();
+    let message = "";
+    let toastType = type;
+    let toastDuration = duration;
+
+    if (typeof messageOrObj === "object" && messageOrObj !== null) {
+      message = messageOrObj.message || "";
+      toastType = messageOrObj.type || type;
+      toastDuration = messageOrObj.duration !== undefined ? messageOrObj.duration : duration;
+    } else {
+      message = messageOrObj;
+    }
+
     const toast = {
       id,
       message,
-      type, // 'success', 'error', 'warning', 'info'
+      type: toastType,
       timestamp: new Date(),
     };
 
     setToasts((prev) => [toast, ...prev]);
 
-    if (duration > 0) {
+    if (toastDuration > 0) {
       setTimeout(() => {
         removeToast(id);
-      }, duration);
+      }, toastDuration);
     }
 
     return id;
@@ -31,13 +41,27 @@ export function useToast() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  return {
+  const value = {
     toasts,
     addToast,
     removeToast,
-    success: (msg, duration) => addToast(msg, "success", duration),
-    error: (msg, duration) => addToast(msg, "error", duration),
-    warning: (msg, duration) => addToast(msg, "warning", duration),
-    info: (msg, duration) => addToast(msg, "info", duration),
+    success: useCallback((msg, dur) => addToast(msg, "success", dur), [addToast]),
+    error: useCallback((msg, dur) => addToast(msg, "error", dur), [addToast]),
+    warning: useCallback((msg, dur) => addToast(msg, "warning", dur), [addToast]),
+    info: useCallback((msg, dur) => addToast(msg, "info", dur), [addToast]),
   };
+
+  return React.createElement(
+    ToastContext.Provider,
+    { value: value },
+    children
+  );
+}
+
+export function useToast() {
+  const context = useContext(ToastContext);
+  if (!context) {
+    throw new Error("useToast must be used within a ToastProvider");
+  }
+  return context;
 }

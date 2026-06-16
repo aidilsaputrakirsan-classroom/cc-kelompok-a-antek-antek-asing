@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Activity, ChevronDown, ChevronLeft, ChevronRight, LayoutDashboard, LogOut, Tags, Ticket, User, Users, Clock, Building2, Package } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
@@ -15,36 +15,30 @@ function SidebarLink({ to, label, isActive, onClick, icon: Icon, collapsed }) {
       onClick={onClick}
       aria-label={label}
       title={collapsed ? label : undefined}
-      className={`group relative isolate flex items-center overflow-hidden rounded-xl py-2 text-sm font-medium ${
-        collapsed ? "justify-center px-2" : "gap-2 px-3"
-      } ${
-        isActive
+      className={`group relative isolate flex items-center overflow-hidden rounded-xl py-2 text-sm font-medium ${collapsed ? "justify-center px-2" : "gap-2 px-3"
+        } ${isActive
           ? "text-white shadow-sm"
           : "text-slate-600 dark:text-slate-400"
-      }`}
+        }`}
     >
       <span
-        className={`pointer-events-none absolute inset-0 rounded-xl transition-all duration-300 ease-out ${
-          isActive
-            ? "scale-100 bg-[#2592ea] opacity-100"
-            : "scale-95 bg-slate-100 dark:bg-slate-800 opacity-0 group-hover:scale-100 group-hover:opacity-100"
-        }`}
+        className={`pointer-events-none absolute inset-0 rounded-xl transition-all duration-300 ease-out ${isActive
+          ? "scale-100 bg-[#2592ea] opacity-100"
+          : "scale-95 bg-slate-100 dark:bg-slate-800 opacity-0 group-hover:scale-100 group-hover:opacity-100"
+          }`}
       />
       {Icon && (
         <Icon
           size={16}
           aria-hidden="true"
-          className={`relative z-10 shrink-0 transition-colors duration-200 ${
-            isActive ? "text-white" : "text-slate-500 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-300"
-          }`}
+          className={`relative z-10 shrink-0 transition-colors duration-200 ${isActive ? "text-white" : "text-slate-500 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-300"
+            }`}
         />
       )}
       <span
-        className={`relative z-10 overflow-hidden whitespace-nowrap transition-all duration-300 ${
-          collapsed ? "max-w-0 -translate-x-1 opacity-0" : "max-w-[180px] translate-x-0 opacity-100"
-        } ${
-          isActive ? "text-white" : "text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100"
-        }`}
+        className={`relative z-10 overflow-hidden whitespace-nowrap transition-all duration-300 ${collapsed ? "max-w-0 -translate-x-1 opacity-0" : "max-w-[180px] translate-x-0 opacity-100"
+          } ${isActive ? "text-white" : "text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100"
+          }`}
       >
         {label}
       </span>
@@ -71,44 +65,135 @@ export default function AppShell() {
     [user?.role]
   );
 
+  const getIsActive = useCallback(
+    (to) => {
+      // Exact match untuk pending-users
+      if (to === "/admin/pending-users") {
+        return location.pathname === "/admin/pending-users";
+      }
+
+      // Admin routes
+      if (location.pathname === "/admin") {
+        // Admin overview
+        if (to === "/admin") {
+          return currentTab === "overview";
+        }
+        // Admin query string based items (All Tickets, Team Member, Categories)
+        if (to.includes("?tab=")) {
+          const expectedTab = new URLSearchParams(to.split("?")[1]).get("tab");
+          return currentTab === expectedTab;
+        }
+      }
+
+      // Employee routes
+      if (location.pathname === "/employee") {
+        // Employee dashboard
+        if (to === "/employee") {
+          return currentTab === "overview" || !location.search;
+        }
+        // Employee query string based items (My Ticket)
+        if (to.includes("?tab=")) {
+          const expectedTab = new URLSearchParams(to.split("?")[1]).get("tab");
+          return currentTab === expectedTab;
+        }
+      }
+
+      // Exact path match (e.g. /status, /items)
+      if (!to.includes("?") && location.pathname === to) {
+        return true;
+      }
+
+      // Fallback for other routes
+      return false;
+    },
+    [location.pathname, currentTab]
+  );
+
+  const [expandedGroups, setExpandedGroups] = useState({
+    manajemen_user: true,
+    manajemen_company: true,
+  });
+
+  const toggleGroup = useCallback((groupId) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }));
+  }, []);
+
   const navItems = useMemo(() => {
     if (user?.role === "superadmin" || user?.role === "admin") {
       return [
-        { to: "/admin", label: "Overview", tab: "overview", icon: LayoutDashboard },
-        { to: "/admin/pending-users", label: "Pending Users", tab: "pending-users", icon: Clock },
-        { to: "/admin?tab=tickets", label: "All Tickets", tab: "tickets", icon: Ticket },
-        { to: "/admin?tab=users", label: "Team Member", tab: "users", icon: Users },
-        { to: "/admin?tab=departments", label: "Departments", tab: "departments", icon: Building2 },
-        { to: "/admin?tab=categories", label: "Categories", tab: "categories", icon: Tags },
-        { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
-        { to: "/status", label: "System Status", tab: "status", icon: Activity },
+        { type: "link", to: "/admin", label: "Overview", tab: "overview", icon: LayoutDashboard },
+        { type: "link", to: "/admin?tab=tickets", label: "All Tickets", tab: "tickets", icon: Ticket },
+        {
+          type: "group",
+          id: "manajemen_user",
+          label: "Manajemen User",
+          icon: Users,
+          items: [
+            { to: "/admin/pending-users", label: "Pending User", tab: "pending-users" },
+            { to: "/admin?tab=users", label: "Team Member", tab: "users" },
+          ],
+        },
+        {
+          type: "group",
+          id: "manajemen_company",
+          label: "Company",
+          icon: Building2,
+          items: [
+            { to: "/admin?tab=departments", label: "Department", tab: "departments" },
+            { to: "/admin?tab=categories", label: "Categories", tab: "categories" },
+          ],
+        },
+        // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+        { type: "link", to: "/status", label: "System Status", tab: "status", icon: Activity },
       ];
     }
 
     if (user?.role === "it_employee") {
       return [
-        { to: "/admin", label: "Overview", tab: "overview", icon: LayoutDashboard },
-        { to: "/admin?tab=tickets", label: "All Tickets", tab: "tickets", icon: Ticket },
-        { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
-        { to: "/status", label: "System Status", tab: "status", icon: Activity },
+        { type: "link", to: "/admin", label: "Overview", tab: "overview", icon: LayoutDashboard },
+        { type: "link", to: "/admin?tab=tickets", label: "All Tickets", tab: "tickets", icon: Ticket },
+        // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+        { type: "link", to: "/status", label: "System Status", tab: "status", icon: Activity },
       ];
     }
 
     if (isAdminLike) {
       return [
-        { to: "/admin", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
-        { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
-        { to: "/status", label: "System Status", tab: "status", icon: Activity },
+        { type: "link", to: "/admin", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
+        // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+        { type: "link", to: "/status", label: "System Status", tab: "status", icon: Activity },
       ];
     }
 
     return [
-      { to: "/employee", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
-      { to: "/employee?tab=my-ticket", label: "My Ticket", tab: "my-ticket", icon: Ticket },
-      { to: "/items", label: "Inventory Items", tab: "items", icon: Package },
-      { to: "/status", label: "System Status", tab: "status", icon: Activity },
+      { type: "link", to: "/employee", label: "Dashboard", tab: "overview", icon: LayoutDashboard },
+      { type: "link", to: "/employee?tab=my-ticket", label: "My Ticket", tab: "my-ticket", icon: Ticket },
+      // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
+      { type: "link", to: "/status", label: "System Status", tab: "status", icon: Activity },
     ];
   }, [isAdminLike, user?.role]);
+
+  useEffect(() => {
+    const newExpanded = { ...expandedGroups };
+    let changed = false;
+
+    navItems.forEach((item) => {
+      if (item.type === "group" && item.items) {
+        const hasActiveChild = item.items.some((subItem) => getIsActive(subItem.to));
+        if (hasActiveChild && !expandedGroups[item.id]) {
+          newExpanded[item.id] = true;
+          changed = true;
+        }
+      }
+    });
+
+    if (changed) {
+      setExpandedGroups(newExpanded);
+    }
+  }, [location.pathname, currentTab, navItems, getIsActive]);
 
   const breadcrumbItems = useMemo(() => {
     if (location.pathname === "/admin/pending-users") {
@@ -175,11 +260,10 @@ export default function AppShell() {
 
   return (
     <div className="min-h-dvh bg-[linear-gradient(180deg,#f8fbff_0%,#eef3f9_100%)] dark:bg-[linear-gradient(180deg,#0f172a_0%,#1e293b_100%)] md:h-screen md:overflow-hidden transition-colors duration-300">
-      <div className="flex min-h-dvh w-screen gap-3 p-3 md:h-full md:gap-5 md:p-4">
+      <div className="flex min-h-dvh w-screen gap-1 p-3 md:h-full md:gap-5 md:p-4">
         <aside
-          className={`group/sidebar fixed inset-y-0 left-0 z-40 w-72 border-r border-slate-200 bg-white/95 dark:border-slate-700 dark:bg-slate-900/95 p-4 backdrop-blur-md transition-[transform,width] duration-300 ease-in-out md:relative md:static md:h-full md:translate-x-0 md:rounded-2xl md:border ${
-            sidebarCollapsed ? "md:w-24" : "md:w-72"
-          } ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+          className={`group/sidebar fixed inset-y-0 left-0 z-40 w-64 border-r border-slate-200 bg-white/95 dark:border-slate-700 dark:bg-slate-900/95 p-4 backdrop-blur-md transition-[transform,width] duration-300 ease-in-out md:relative md:static md:h-full md:translate-x-0 md:rounded-2xl md:border ${sidebarCollapsed ? "md:w-24" : "md:w-64"
+            } ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
           <button
             type="button"
@@ -196,63 +280,100 @@ export default function AppShell() {
           </button>
 
           <div className="flex h-full flex-col">
-            <div className="mb-6 flex items-center gap-3 rounded-xl px-3 py-2 border-b-2 border-blue-400 dark:border-blue-400/80 pb-4">
+            <div className="mb-4 flex items-center gap-2 rounded-xl px-4 py-2 ">
               <img
-                src="/image/logo_antick_async.png"
+                src={sidebarCollapsed ? "/image/logo1-vlue.svg" : "/image/logo-sidebar.svg"}
                 alt="Antick Async Logo"
-                className="h-12 w-12 shrink-0 rounded-lg object-contain"
+                className={`shrink-0 object-contain ${sidebarCollapsed ? "h-10 w-30" : "h-10 w-30"}`}
               />
               <div
-                className={`overflow-hidden transition-all duration-300 min-w-0 ${
-                  sidebarCollapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
-                }`}
+                className={`overflow-hidden transition-all duration-300 min-w-0 ${sidebarCollapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+                  }`}
               >
-                <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">Antick</h1>
               </div>
             </div>
 
             <nav className="space-y-2">
               {navItems.map((item) => {
-                const getIsActive = () => {
-                  // Exact match untuk pending-users
-                  if (item.to === "/admin/pending-users") {
-                    return location.pathname === "/admin/pending-users";
-                  }
+                if (item.type === "group") {
+                  const isExpanded = expandedGroups[item.id];
+                  const hasActiveChild = item.items.some((subItem) => getIsActive(subItem.to));
 
-                  // Admin routes
-                  if (location.pathname === "/admin") {
-                    // Admin overview
-                    if (item.to === "/admin") {
-                      return currentTab === "overview";
-                    }
-                    // Admin query string based items (All Tickets, Team Member, Categories)
-                    if (item.to.includes("?tab=")) {
-                      const expectedTab = new URLSearchParams(item.to.split("?")[1]).get("tab");
-                      return currentTab === expectedTab;
-                    }
-                  }
+                  return (
+                    <div key={item.id} className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (sidebarCollapsed) {
+                            setSidebarCollapsed(false);
+                            if (!isExpanded) toggleGroup(item.id);
+                          } else {
+                            toggleGroup(item.id);
+                          }
+                        }}
+                        aria-label={item.label}
+                        title={sidebarCollapsed ? item.label : undefined}
+                        className={`group relative flex w-full items-center overflow-hidden rounded-xl py-2 text-sm font-medium transition-all duration-200 ${
+                          sidebarCollapsed ? "justify-center px-2" : "gap-2 px-3"
+                        } ${
+                          hasActiveChild
+                            ? "text-slate-900 dark:text-slate-100 font-semibold"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/50 dark:hover:bg-slate-800/40"
+                        }`}
+                      >
+                        {item.icon && (
+                          <item.icon
+                            size={16}
+                            aria-hidden="true"
+                            className={`shrink-0 transition-colors duration-200 ${
+                              hasActiveChild
+                                ? "text-[#2592ea]"
+                                : "text-slate-500 dark:text-slate-500 group-hover:text-slate-900 dark:group-hover:text-slate-300"
+                            }`}
+                          />
+                        )}
+                        <span
+                          className={`overflow-hidden text-left whitespace-nowrap transition-all duration-300 ${
+                            sidebarCollapsed ? "max-w-0 -translate-x-1 opacity-0" : "max-w-[180px] translate-x-0 opacity-100"
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+                        {!sidebarCollapsed && (
+                          <ChevronDown
+                            size={14}
+                            className={`ml-auto text-slate-400 dark:text-slate-500 transition-transform duration-200 ${
+                              isExpanded ? "rotate-180" : ""
+                            }`}
+                          />
+                        )}
+                      </button>
 
-                  // Employee routes
-                  if (location.pathname === "/employee") {
-                    // Employee dashboard
-                    if (item.to === "/employee") {
-                      return currentTab === "overview" || !location.search;
-                    }
-                    // Employee query string based items (My Ticket)
-                    if (item.to.includes("?tab=")) {
-                      const expectedTab = new URLSearchParams(item.to.split("?")[1]).get("tab");
-                      return currentTab === expectedTab;
-                    }
-                  }
-
-                  // Exact path match (e.g. /status, /items)
-                  if (!item.to.includes("?") && location.pathname === item.to) {
-                    return true;
-                  }
-
-                  // Fallback for other routes
-                  return false;
-                };
+                      {isExpanded && !sidebarCollapsed && (
+                        <div className="ml-[20px] pl-4 border-l border-slate-200 dark:border-slate-800 space-y-1 mt-1">
+                          {item.items.map((subItem) => {
+                            const isSubActive = getIsActive(subItem.to);
+                            return (
+                              <NavLink
+                                key={subItem.to}
+                                to={subItem.to}
+                                onClick={() => setMobileOpen(false)}
+                                aria-label={subItem.label}
+                                className={`group relative flex items-center overflow-hidden rounded-lg py-1.5 px-3 text-sm font-medium transition-all duration-200 ${
+                                  isSubActive
+                                    ? "text-[#2592ea] dark:text-[#2592ea] font-semibold bg-slate-50 dark:bg-slate-800/40"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50/50 dark:hover:bg-slate-800/20"
+                                }`}
+                              >
+                                {subItem.label}
+                              </NavLink>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
 
                 return (
                   <SidebarLink
@@ -262,7 +383,7 @@ export default function AppShell() {
                     icon={item.icon}
                     collapsed={sidebarCollapsed}
                     onClick={() => setMobileOpen(false)}
-                    isActive={getIsActive()}
+                    isActive={getIsActive(item.to)}
                   />
                 );
               })}
@@ -320,7 +441,7 @@ export default function AppShell() {
                   aria-label="Open profile menu"
                 >
                   <span className="hidden text-right leading-tight md:block">
-                    <span className="block max-w-[180px] truncate text-base font-semibold text-slate-800 dark:text-slate-100">
+                    <span className="block max-w-[150px] truncate text-base font-semibold text-slate-800 dark:text-slate-100">
                       {user?.name || "User"}
                     </span>
                     <span className="block max-w-[180px] truncate text-xs capitalize text-slate-500 dark:text-slate-400">
