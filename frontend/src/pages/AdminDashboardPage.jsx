@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Filter, Pencil, Plus, RefreshCw, RotateCcw, Trash2, User, Eye, Ticket, Users } from "lucide-react";
+import { CheckCheck, ChevronDown, CircleDot, Clock3, FolderCheck, Filter, KeyRound, Pencil, Plus, RefreshCw, RotateCcw, Trash2, User, Eye, Ticket, Users } from "lucide-react";
 import { adminApi, categoryApi, ticketApi } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../context/useToast";
@@ -195,6 +195,7 @@ export default function AdminDashboardPage() {
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [assigneePickerTicket, setAssigneePickerTicket] = useState(null);
   const [editingUserDepartment, setEditingUserDepartment] = useState(null);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [departmentEditMode, setDepartmentEditMode] = useState(null);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [assigneePickerPosition, setAssigneePickerPosition] = useState({ top: 0, left: 0 });
@@ -397,6 +398,74 @@ export default function AdminDashboardPage() {
       toast.error(err.message || "Gagal mengubah departemen user.");
       setError(err.message || "Gagal mengubah departemen user.");
     }
+  };
+
+  const resetUserPassword = async (item) => {
+    const confirmReset = window.confirm(
+      `Reset password "${item.name}" menjadi default (Password123!)?`
+    );
+    if (!confirmReset) return;
+
+    try {
+      await adminApi.resetUserPassword(item.id);
+      toast.success(`Password ${item.name} berhasil di-reset ke default.`);
+    } catch (err) {
+      toast.error(err.message || "Gagal mereset password user.");
+      setError(err.message || "Gagal mereset password user.");
+    }
+  };
+
+  const deleteUser = async (item) => {
+    const confirmDelete = window.confirm(`Hapus user "${item.name}"? Tindakan ini tidak dapat dibatalkan.`);
+    if (!confirmDelete) return;
+
+    try {
+      await adminApi.deleteUser(item.id);
+      toast.success(`User ${item.name} berhasil dihapus.`);
+      setSelectedUserIds((prev) => prev.filter((id) => id !== item.id));
+      await loadData();
+    } catch (err) {
+      toast.error(err.message || "Gagal menghapus user.");
+      setError(err.message || "Gagal menghapus user.");
+    }
+  };
+
+  const toggleUserSelection = (userId) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  };
+
+  const toggleSelectAllUsers = () => {
+    if (selectedUserIds.length === filteredUsers.length) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(filteredUsers.map((item) => item.id));
+    }
+  };
+
+  const bulkDeleteUsers = async () => {
+    if (selectedUserIds.length === 0) return;
+    const confirmDelete = window.confirm(
+      `Hapus ${selectedUserIds.length} user terpilih? Tindakan ini tidak dapat dibatalkan.`
+    );
+    if (!confirmDelete) return;
+
+    const results = await Promise.allSettled(
+      selectedUserIds.map((id) => adminApi.deleteUser(id))
+    );
+    const failed = results.filter((r) => r.status === "rejected").length;
+    const succeeded = results.length - failed;
+
+    if (succeeded > 0) {
+      toast.success(`${succeeded} user berhasil dihapus.`);
+    }
+    if (failed > 0) {
+      toast.error(`${failed} user gagal dihapus (mungkin punya tiket/approval log terkait).`);
+    }
+
+    setSelectedUserIds([]);
+    await loadData();
   };
 
   const createCategory = async () => {
@@ -823,10 +892,34 @@ export default function AdminDashboardPage() {
           {filteredUsers.length === 0 && (
             <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">Tidak ada user yang cocok dengan pencarian.</p>
           )}
+          {selectedUserIds.length > 0 && (
+            <div className="mb-3 flex items-center justify-between rounded-xl border border-rose-200 dark:border-rose-900/30 bg-rose-50 dark:bg-rose-900/20 px-3 py-2">
+              <span className="text-sm text-rose-700 dark:text-rose-400">
+                {selectedUserIds.length} user terpilih
+              </span>
+              <Button
+                onClick={bulkDeleteUsers}
+                variant="secondary"
+                className="inline-flex items-center gap-2 rounded-lg border-rose-200 dark:border-rose-900/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/40"
+              >
+                <Trash2 size={14} aria-hidden="true" />
+                Delete Selected
+              </Button>
+            </div>
+          )}
           <div className="overflow-x-auto">
-            <table className="min-w-[900px] w-full text-left text-sm">
+            <table className="min-w-[980px] w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                  <th className="py-2 pr-2 w-8">
+                    <input
+                      type="checkbox"
+                      checked={filteredUsers.length > 0 && selectedUserIds.length === filteredUsers.length}
+                      onChange={toggleSelectAllUsers}
+                      aria-label="Select all users"
+                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-600"
+                    />
+                  </th>
                   <th className="py-2">Name</th>
                   <th className="py-2">Email</th>
                   <th className="py-2">Role</th>
@@ -837,6 +930,15 @@ export default function AdminDashboardPage() {
               <tbody>
                 {filteredUsers.map((item) => (
                   <tr key={item.id} className="border-b border-slate-100 dark:border-slate-800 dark:hover:bg-slate-800/40 transition">
+                    <td className="py-2 pr-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedUserIds.includes(item.id)}
+                        onChange={() => toggleUserSelection(item.id)}
+                        aria-label={`Select ${item.name}`}
+                        className="h-4 w-4 rounded border-slate-300 dark:border-slate-600"
+                      />
+                    </td>
                     <td className="py-2">
                       <UserInline person={item} fallback={item.name || "-"} />
                     </td>
@@ -906,16 +1008,35 @@ export default function AdminDashboardPage() {
                             </button>
                           </>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingUserDepartment(item.id);
-                              setDepartmentEditMode({ role: item.role, department: item.department_id });
-                            }}
-                            className="inline-flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-600 dark:text-slate-400 transition hover:bg-slate-50 dark:hover:bg-slate-700"
-                          >
-                            <Pencil size={14} />
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingUserDepartment(item.id);
+                                setDepartmentEditMode({ role: item.role, department: item.department_id });
+                              }}
+                              className="inline-flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-slate-600 dark:text-slate-400 transition hover:bg-slate-50 dark:hover:bg-slate-700"
+                              title="Edit role/department"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => resetUserPassword(item)}
+                              className="inline-flex items-center justify-center rounded-lg border border-amber-200 dark:border-amber-900/30 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-amber-600 dark:text-amber-400 transition hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                              title="Reset password ke default"
+                            >
+                              <KeyRound size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteUser(item)}
+                              className="inline-flex items-center justify-center rounded-lg border border-rose-200 dark:border-rose-900/30 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs text-rose-600 dark:text-rose-400 transition hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                              title="Hapus user"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>

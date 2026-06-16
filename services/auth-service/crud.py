@@ -109,6 +109,35 @@ def update_user_role(db: Session, user_id: int, new_role: UserRole) -> User | No
     db.refresh(db_user)
     return db_user
 
+DEFAULT_RESET_PASSWORD = "Password123!"
+
+def reset_user_password(db: Session, user_id: int) -> User | None:
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return None
+    db_user.hashed_password = hash_password(DEFAULT_RESET_PASSWORD)
+    db_user.must_change_password = True
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+class UserHasRelatedDataError(Exception):
+    """Raised when a user can't be deleted because of related tickets/approval logs."""
+
+def delete_user(db: Session, user_id: int) -> bool:
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return False
+    try:
+        db.delete(db_user)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise UserHasRelatedDataError(
+            "User tidak bisa dihapus karena masih memiliki tiket atau riwayat approval terkait."
+        )
+    return True
+
 def update_user_department(db: Session, user_id: int, new_department_id: int) -> User | None:
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:

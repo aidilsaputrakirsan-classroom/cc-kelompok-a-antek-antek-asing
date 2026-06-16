@@ -283,6 +283,46 @@ def update_user_role(
     updated = crud.update_user_role(db, user_id, role_update.role)
     return updated
 
+@app.post("/admin/users/{user_id}/reset-password", response_model=UserResponse)
+def reset_user_password(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_admins)
+):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+
+    if target_user.id == current_user.id:
+        raise HTTPException(status_code=403, detail="Anda tidak dapat mereset password akun Anda sendiri")
+
+    if current_user.role == UserRole.admin and target_user.role in [UserRole.superadmin, UserRole.admin]:
+        raise HTTPException(status_code=403, detail="Admin tidak dapat mereset password admin lain atau superadmin")
+
+    updated = crud.reset_user_password(db, user_id)
+    return updated
+
+@app.delete("/admin/users/{user_id}", status_code=204)
+def delete_user_endpoint(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(allow_admins)
+):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User tidak ditemukan")
+
+    if target_user.id == current_user.id:
+        raise HTTPException(status_code=403, detail="Anda tidak dapat menghapus akun Anda sendiri")
+
+    if current_user.role == UserRole.admin and target_user.role in [UserRole.superadmin, UserRole.admin]:
+        raise HTTPException(status_code=403, detail="Admin tidak dapat menghapus admin lain atau superadmin")
+
+    try:
+        crud.delete_user(db, user_id)
+    except crud.UserHasRelatedDataError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+
 @app.put("/users/me/department", response_model=UserResponse)
 def assign_department(
     dept_update: UserDepartmentUpdate, 
