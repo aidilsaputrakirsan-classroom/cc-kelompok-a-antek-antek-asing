@@ -350,7 +350,7 @@ export default function AdminDashboardPage() {
       subtitle: "Here is your support performance overview.",
     },
     tickets: {
-      title: "All Tickets",
+      title: "Semua Tiket",
       subtitle: "Manage assignee, status, and ticket progress.",
     },
     users: {

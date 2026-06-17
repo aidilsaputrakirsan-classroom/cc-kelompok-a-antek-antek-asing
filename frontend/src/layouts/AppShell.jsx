@@ -125,7 +125,7 @@ export default function AppShell() {
     if (user?.role === "superadmin" || user?.role === "admin") {
       return [
         { type: "link", to: "/admin", label: "Overview", tab: "overview", icon: LayoutDashboard },
-        { type: "link", to: "/admin?tab=tickets", label: "All Tickets", tab: "tickets", icon: Ticket },
+        { type: "link", to: "/admin?tab=tickets", label: "Semua Tiket", tab: "tickets", icon: Ticket },
         {
           type: "group",
           id: "manajemen_user",
@@ -154,7 +154,7 @@ export default function AppShell() {
     if (user?.role === "it_employee") {
       return [
         { type: "link", to: "/admin", label: "Overview", tab: "overview", icon: LayoutDashboard },
-        { type: "link", to: "/admin?tab=tickets", label: "All Tickets", tab: "tickets", icon: Ticket },
+        { type: "link", to: "/admin?tab=tickets", label: "Semua Tiket", tab: "tickets", icon: Ticket },
         // { type: "link", to: "/items", label: "Inventory Items", tab: "items", icon: Package },
       ];
     }
@@ -200,7 +200,7 @@ export default function AppShell() {
     if (location.pathname.startsWith("/admin")) {
       const tabLabelMap = {
         overview: "Overview",
-        tickets: "All Tickets",
+        tickets: "Semua Tiket",
         users: "Team Member",
         categories: "Categories",
       };
